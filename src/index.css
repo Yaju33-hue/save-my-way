@@ -1258,6 +1258,8 @@ input[type="number"] {
 
 .side-nav {
   position: fixed;
+  gap:50px;
+
   left: 20px;
   top: 20px;
   bottom: 20px;
@@ -1272,14 +1274,12 @@ input[type="number"] {
 
   display: flex;
   flex-direction: column;
-  gap: 28px;
 
   box-shadow: 0 12px 35px rgba(0, 0, 0, 0.25);
 
   overflow-y: auto;
   z-index: 1000;
 }
-
 /* =========================
    NAV ITEMS BASE
 ========================= */
@@ -1300,6 +1300,13 @@ input[type="number"] {
 
   display: flex;
   align-items: center;
+}
+
+/* NAV LINKS WRAPPER */
+.side-nav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
 }
 
 /* =========================
@@ -1379,4 +1386,11 @@ body {
   .bottom-nav {
     display: none;
   }
+}
+
+.logo {
+  text-align: center;
+  font-weight: bolder;
+  font-size: 1.4rem;
+  margin-bottom: 20px;
 }
