@@ -37,8 +37,8 @@ export default function MainApp() {
           </Routes>
         </main>
 
-        {/* Mobile Bottom Nav (hidden on desktop via CSS) */}
-        {location.pathname !== "/account" && <BottomNav />}
+       {/* Mobile Bottom Nav (hidden on desktop via CSS) */}
+       <BottomNav />
       </div>
     </div>
   );
