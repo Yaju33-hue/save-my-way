@@ -1245,3 +1245,138 @@ input[type="number"] {
   background: rgba(255, 71, 87, 0.12);
   color: #ff4757;
 }
+
+/* Layout */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* =========================
+   SIDEBAR (FIXED DESKTOP)
+========================= */
+
+.side-nav {
+  position: fixed;
+  left: 20px;
+  top: 20px;
+  bottom: 20px;
+
+  width: 240px;
+
+  background: #111827;
+  color: white;
+
+  padding: 22px 18px;
+  border-radius: 22px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.25);
+
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+/* =========================
+   NAV ITEMS BASE
+========================= */
+
+.side-nav a {
+  position: relative;
+
+  color: #cbd5e1;
+  text-decoration: none;
+
+  padding: 12px 14px;
+  border-radius: 14px;
+
+  font-size: 15px;
+  font-weight: 500;
+
+  transition: all 0.25s ease;
+
+  display: flex;
+  align-items: center;
+}
+
+/* =========================
+   HOVER STATE
+========================= */
+
+.side-nav a:hover {
+  background: rgba(148, 163, 184, 0.12);
+  color: white;
+  transform: translateX(4px);
+}
+
+/* =========================
+   ACTIVE STATE
+========================= */
+
+.side-nav a.active {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+
+  font-weight: 700;
+  border-radius: 999px;
+
+  box-shadow: 0 10px 25px rgba(56, 189, 248, 0.25);
+}
+
+/* LEFT INDICATOR BAR */
+.side-nav a.active::before {
+  content: "";
+  position: absolute;
+
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  width: 4px;
+  height: 60%;
+
+  background: #38bdf8;
+  border-radius: 10px;
+}
+
+/* =========================
+   MAIN CONTENT FIX
+========================= */
+
+.main-content {
+  flex: 1;
+  margin-left: 280px; /* space for sidebar */
+  padding-bottom: 90px; /* prevents bottom nav overlap */
+}
+
+/* =========================
+   IMPORTANT: FIX SCROLL ISSUE
+========================= */
+
+body {
+  overflow-x: hidden;
+}
+
+/* =========================
+   RESPONSIVE BEHAVIOR
+========================= */
+
+@media (max-width: 768px) {
+  .side-nav {
+    display: none;
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding-bottom: 90px;
+  }
+}
+
+@media (min-width: 769px) {
+  .bottom-nav {
+    display: none;
+  }
+}

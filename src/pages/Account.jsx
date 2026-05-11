@@ -40,11 +40,7 @@ export default function Account({ onLogout }) {
 
   return (
     <div className="account-page">
-      {/* ✅ BACK BUTTON */}
-      <button className="back-btn" onClick={() => navigate("/")}>
-        <FaArrowLeft />
-        Back
-      </button>
+     
 
       <div className="card account-card">
         <h2 className="section-title">Profile</h2>
