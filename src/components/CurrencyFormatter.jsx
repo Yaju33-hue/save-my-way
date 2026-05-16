@@ -1,8 +1,20 @@
 import React from "react";
-import { useTheme } from "../contexts/ThemeContext.jsx";
+import { useReactor } from "sia-reactor/adapters/react";
+import { store } from "../store/index.js";
+
+const currencySymbols = {
+  NGN: "₦",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  GHS: "₵",
+};
 
 export default function CurrencyFormatter({ amount, className = "" }) {
-  const { hideBalance, currency } = useTheme();
+  const state = useReactor(store);
+  const hideBalance = state.ui.hideBalance;
+  const currency = state.ui.currency;
+  const symbol = currencySymbols[currency] ?? currency;
 
   if (hideBalance) {
     return <span className={`amount hidden ${className}`}>****</span>;
@@ -10,9 +22,8 @@ export default function CurrencyFormatter({ amount, className = "" }) {
 
   return (
     <span className={`amount ${className}`}>
-      {amount.toLocaleString("en-NG", {
-        style: "currency",
-        currency: currency,
+      {symbol}
+      {amount.toLocaleString("en-US", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}

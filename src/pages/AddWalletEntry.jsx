@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useData } from "../contexts/DataContext.jsx";
+import { useReactor } from "sia-reactor/adapters/react";
+import { store } from "../store/index.js";
+import { addWalletEntry, updateWalletEntry } from "../store/actions.js";
 import { FaArrowLeft } from "react-icons/fa";
 
 export default function AddWalletEntry() {
-  const { walletEntries, addWalletEntry, updateWalletEntry } = useData();
+  const state = useReactor(store);
+  const walletEntries = state.data.walletEntries;
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -95,6 +98,12 @@ export default function AddWalletEntry() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const sanitizeNumberInput = (value) => {
+    const sanitized = value.replace(/[^0-9.]/g, "");
+    const parts = sanitized.split(".");
+    return parts.length <= 1 ? sanitized : `${parts[0]}.${parts.slice(1).join("")}`;
+  };
+
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -137,11 +146,13 @@ export default function AddWalletEntry() {
 
           <div className="floating-field">
             <input
-              type="text"
+              type="number"
+              min="0"
+              step="0.01"
               inputMode="decimal"
               className="input floating-input"
               value={formData.amount}
-              onChange={(e) => handleChange("amount", e.target.value)}
+              onChange={(e) => handleChange("amount", sanitizeNumberInput(e.target.value))}
               onFocus={closeAllDropdowns}
               placeholder=" "
               required

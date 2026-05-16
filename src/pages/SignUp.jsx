@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useAuth } from "../contexts/AuthContext.jsx";
+import { signUp } from "../store/actions.js";
 import { useNavigate } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
 
@@ -11,7 +11,6 @@ export default function SignUp() {
     password: "",
   });
   const [error, setError] = useState("");
-  const { signUp } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = (e) => {
@@ -37,8 +36,7 @@ export default function SignUp() {
         email,
         createdAt: new Date().toISOString(),
       };
-      localStorage.setItem("save-my-way-user", JSON.stringify(userData));
-      signUp(email, password); // Keep existing auth flow
+      signUp(userData);
       navigate("/");
     } catch (err) {
       setError("Sign up failed");
@@ -85,12 +83,12 @@ export default function SignUp() {
           {error && (
             <div
               style={{
-                background: "#ffebee",
-                color: "#c62828",
+                background: "var(--danger-bg)",
+                color: "var(--danger)",
                 padding: "1rem",
                 borderRadius: "12px",
                 marginBottom: "1rem",
-                borderLeft: "4px solid #ff4757",
+                borderLeft: "4px solid var(--danger)",
               }}
             >
               {error}

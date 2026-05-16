@@ -1,11 +1,12 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { FaHome, FaWallet, FaPiggyBank, FaUser } from "react-icons/fa";
+import { FaHome, FaWallet, FaPiggyBank, FaUniversity, FaUser } from "react-icons/fa";
 
 const navItems = [
   { path: "/", label: "Home", icon: FaHome },
   { path: "/wallet", label: "Wallet", icon: FaWallet },
   { path: "/savings", label: "Savings", icon: FaPiggyBank },
+  { path: "/investments", label: "Investments", icon: FaUniversity },
   { path: "/account", label: "Account", icon: FaUser },
 ];
 

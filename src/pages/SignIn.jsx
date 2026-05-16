@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useAuth } from "../contexts/AuthContext.jsx";
+import { signIn } from "../store/actions.js";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
 
@@ -7,14 +7,13 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const { signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const success = await signIn(email, password);
+      const success = signIn(email, password);
       if (success) {
         navigate(location.state?.from?.pathname || "/");
       } else {
@@ -56,12 +55,12 @@ export default function SignIn() {
           {error && (
             <div
               style={{
-                background: "#ffebee",
-                color: "#c62828",
+                background: "var(--danger-bg)",
+                color: "var(--danger)",
                 padding: "1rem",
                 borderRadius: "12px",
                 marginBottom: "1rem",
-                borderLeft: "4px solid #ff4757",
+                borderLeft: "4px solid var(--danger)",
               }}
             >
               {error}

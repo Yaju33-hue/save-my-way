@@ -1,17 +1,18 @@
 import React from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext.jsx";
 import Home from "./Home.jsx";
 import Wallet from "./Wallet.jsx";
 import Savings from "./Savings.jsx";
+import Investments from "./Investments.jsx";
 import Account from "./Account.jsx";
 import AddWalletEntry from "./AddWalletEntry.jsx";
 import AddSavingsEntry from "./AddSavingsEntry.jsx";
+import AddInvestmentEntry from "./AddInvestmentEntry.jsx";
 import BottomNav from "../components/BottomNav.jsx";
 import SideNav from "../components/SideNav.jsx";
 
+
 export default function MainApp() {
-  const { signOut } = useAuth();
   const location = useLocation();
 
   return (
@@ -32,7 +33,10 @@ export default function MainApp() {
             <Route path="/savings" element={<Savings />} />
             <Route path="/savings/add" element={<AddSavingsEntry />} />
             <Route path="/savings/edit/:id" element={<AddSavingsEntry />} />
-            <Route path="/account" element={<Account onLogout={signOut} />} />
+            <Route path="/investments" element={<Investments />} />
+            <Route path="/investments/add" element={<AddInvestmentEntry />} />
+            <Route path="/investments/edit/:id" element={<AddInvestmentEntry />} />
+            <Route path="/account" element={<Account />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

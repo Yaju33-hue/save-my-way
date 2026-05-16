@@ -29,6 +29,13 @@ export default function SideNav() {
         </Link>
 
         <Link
+          className={`nav-item ${isActive("/investments") ? "active" : ""}`}
+          to="/investments"
+        >
+          Investments
+        </Link>
+
+        <Link
           className={`nav-item ${isActive("/account") ? "active" : ""}`}
           to="/account"
         >

@@ -1,16 +1,25 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useAuth } from "../contexts/AuthContext.jsx";
-import { useTheme } from "../contexts/ThemeContext.jsx";
-import { useData } from "../contexts/DataContext.jsx";
+import { useReactor, useSelector } from "sia-reactor/adapters/react";
+import { store } from "../store/index.js";
+import { toggleTheme, updateCurrency, signOut, toggleHideBalance } from "../store/actions.js";
+import {
+  selectWalletTotal,
+  selectSavingsTotal,
+  selectInvestmentsTotal,
+} from "../store/selectors.js";
 import CurrencyFormatter from "../components/CurrencyFormatter.jsx";
 import { FaSignOutAlt, FaCog, FaArrowLeft } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 export default function Account({ onLogout }) {
-  const { user } = useAuth();
-  const { theme, toggleTheme, currency, updateCurrency, hideBalance } =
-    useTheme();
-  const { walletTotal, savingsTotal } = useData();
+  const state = useReactor(store);
+  const user = state.auth.user;
+  const theme = state.ui.theme;
+  const currency = state.ui.currency;
+  const hideBalance = state.ui.hideBalance;
+  const walletTotal = useSelector(store, selectWalletTotal);
+  const savingsTotal = useSelector(store, selectSavingsTotal);
+  const investmentsTotal = useSelector(store, selectInvestmentsTotal);
 
   const navigate = useNavigate();
 
@@ -34,7 +43,7 @@ export default function Account({ onLogout }) {
 
   const handleLogout = () => {
     if (window.confirm("Are you sure you want to log out?")) {
-      onLogout();
+      signOut();
     }
   };
 
@@ -65,15 +74,18 @@ export default function Account({ onLogout }) {
 
         <div className="account-summary-grid">
           <div className="account-summary-box">
-            <span>Wallet Total</span>
-            <br></br>
-            <CurrencyFormatter amount={walletTotal} />
+            <p style={{ fontSize: "0.85rem", opacity: 0.9, marginBottom: "0.5rem" }}>Total Wallet</p>
+            <CurrencyFormatter amount={walletTotal} className="summary-amount" />
           </div>
 
           <div className="account-summary-box">
-            <span>Savings Total</span> 
-            <br></br>
-            <CurrencyFormatter amount={savingsTotal} />
+            <p style={{ fontSize: "0.85rem", opacity: 0.9, marginBottom: "0.5rem" }}>Total Savings</p>
+            <CurrencyFormatter amount={savingsTotal} className="summary-amount" />
+          </div>
+
+          <div className="account-summary-box">
+            <p style={{ fontSize: "0.85rem", opacity: 0.9, marginBottom: "0.5rem" }}>Total Investments</p>
+            <CurrencyFormatter amount={investmentsTotal} className="summary-amount" />
           </div>
         </div>
 
@@ -138,6 +150,18 @@ export default function Account({ onLogout }) {
                   type="checkbox"
                   checked={theme === "dark"}
                   onChange={toggleTheme}
+                />
+                <span className="checkmark"></span>
+              </label>
+            </div>
+            <div className="toggle-row">
+              <span>Hide Balance</span>
+
+              <label className="custom-checkbox">
+                <input
+                  type="checkbox"
+                  checked={hideBalance}
+                  onChange={toggleHideBalance}
                 />
                 <span className="checkmark"></span>
               </label>

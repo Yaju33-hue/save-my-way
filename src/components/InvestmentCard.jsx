@@ -1,30 +1,31 @@
-import React, { useState, useRef, useEffect } from "react";
-import { FaClock } from "react-icons/fa";
+import React, { useEffect, useRef, useState } from "react";
 import { useReactor } from "sia-reactor/adapters/react";
 import { store } from "../store/index.js";
-import { isPendingRecurringEntry } from "../store/selectors.js";
 import DropdownMenu from "./DropdownMenu.jsx";
 
-export default function EntryCard({
-  entry,
-  onEdit,
-  onDelete,
-  type = "wallet",
-}) {
+const currencySymbols = {
+  NGN: "₦",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  GHS: "₵",
+};
+
+export default function InvestmentCard({ entry, onEdit, onDelete }) {
   const state = useReactor(store);
   const hideBalance = state.ui.hideBalance;
   const currency = state.ui.currency;
   const [showDropdown, setShowDropdown] = useState(false);
   const menuRef = useRef(null);
 
-  const currencySymbols = {
-    NGN: "₦",
-    USD: "$",
-    EUR: "€",
-    GBP: "£",
-    GHS: "₵",
-  };
   const symbol = currencySymbols[currency] ?? currency;
+
+  const amount = parseFloat(entry.amount) || 0;
+  const currentPrice = parseFloat(entry.currentPrice) || 0;
+  const amountSpent = parseFloat(entry.amountSpent) || 0;
+  const currentValue = amount * currentPrice;
+  const profitLoss = currentValue - amountSpent;
+  const isProfit = profitLoss >= 0;
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -37,19 +38,11 @@ export default function EntryCard({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const getTypeColor = (entryType) => {
-    if (entryType === "incoming") return "var(--money-green)";
-    if (entryType === "outgoing") return "var(--danger)";
-    return "var(--text-primary)";
-  };
-
-  const isPending = isPendingRecurringEntry(entry);
-  const formattedAmount = hideBalance
-    ? "****"
-    : `${symbol}${entry.amount.toLocaleString("en-US", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })}`;
+  const formatMoney = (value) =>
+    `${symbol}${value.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
 
   return (
     <div className="card fade-in-up">
@@ -58,25 +51,31 @@ export default function EntryCard({
           <h3 className="bold">{entry.name}</h3>
 
           <div className="entry-tags">
-            <span
-              className="entry-tag"
-              style={{ color: getTypeColor(entry.type) }}
-            >
-              {entry.type?.toUpperCase()}
-            </span>
-
-            {entry.recurring && (
-              <span className={`recurring-tag ${isPending ? "pending-recurring" : ""}`}>
-                RECURRING
-                {isPending && <FaClock className="clock-icon" />}
-              </span>
-            )}
+            <span className="entry-tag">Shares: {hideBalance ? "****" : amount}</span>
+            <span className="entry-tag">Price: {formatMoney(currentPrice)}</span>
           </div>
+
+          <p style={{ marginTop: "0.85rem", color: "var(--text-secondary)" }}>
+            Spent: {hideBalance ? "****" : formatMoney(amountSpent)}
+          </p>
         </div>
 
         <div className="entry-amount-wrap">
-          <div className="amount" style={{ color: getTypeColor(entry.type) }}>
-            {formattedAmount}
+          <div
+            className="amount"
+            style={{ color: isProfit ? "var(--money-green)" : "var(--danger)" }}
+          >
+            {hideBalance ? "****" : formatMoney(currentValue)}
+          </div>
+
+          <div
+            style={{
+              color: isProfit ? "var(--money-green)" : "var(--danger)",
+              fontWeight: 700,
+              marginTop: "0.5rem",
+            }}
+          >
+            {isProfit ? "Profit" : "Loss"}: {hideBalance ? "****" : formatMoney(Math.abs(profitLoss))}
           </div>
         </div>
 

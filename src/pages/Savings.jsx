@@ -1,18 +1,21 @@
 import React from "react";
-import { useData } from "../contexts/DataContext.jsx";
+import { useReactor, useSelector } from "sia-reactor/adapters/react";
+import { store } from "../store/index.js";
+import { deleteSavingsEntry, toggleHideBalance } from "../store/actions.js";
+import { selectSavingsTotal, selectTotalInterest } from "../store/selectors.js";
+import { calculateInterest } from "../store/actions.js";
 import EntryCard from "../components/EntryCard.jsx";
 import CurrencyFormatter from "../components/CurrencyFormatter.jsx";
-import { FaPlus, FaPiggyBank } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { FaPlus, FaPiggyBank, FaEye, FaEyeSlash } from "react-icons/fa";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Savings() {
-  const {
-    savingsEntries,
-    savingsTotal,
-    totalInterest,
-    deleteSavingsEntry,
-    calculateInterest,
-  } = useData();
+  const state = useReactor(store);
+  const savingsEntries = state.data.savingsEntries;
+  const savingsTotal = useSelector(store, selectSavingsTotal);
+  const totalInterest = useSelector(store, selectTotalInterest);
+  const hideBalance = state.ui.hideBalance;
+  const navigate = useNavigate();
 
   const handleDelete = (id) => {
     if (window.confirm("Are you sure you want to delete this savings entry?")) {
@@ -29,7 +32,20 @@ export default function Savings() {
 
         <p className="savings-label">Total Savings Balance</p>
 
-        <CurrencyFormatter amount={savingsTotal} className="savings-amount" />
+        <div className="balance-row">
+          <CurrencyFormatter
+            amount={hideBalance ? 0 : savingsTotal}
+            className="savings-amount"
+          />
+
+          <button
+            className="balance-toggle-btn"
+            onClick={toggleHideBalance}
+            type="button"
+          >
+            {hideBalance ? <FaEyeSlash /> : <FaEye />}
+          </button>
+        </div>
 
         <div className="interest-box">
           <span>Total Interest</span>
@@ -69,6 +85,7 @@ export default function Savings() {
                 amount: parseFloat(entry.amount),
                 interestAccrued: calculateInterest(entry),
               }}
+              onEdit={() => navigate(`/savings/edit/${entry.id}`)}
               onDelete={handleDelete}
               type="savings"
             />

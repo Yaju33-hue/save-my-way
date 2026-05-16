@@ -1,12 +1,19 @@
 import React from "react";
-import { useData } from "../contexts/DataContext.jsx";
+import { useReactor, useSelector } from "sia-reactor/adapters/react";
+import { store } from "../store/index.js";
+import { deleteWalletEntry, toggleHideBalance } from "../store/actions.js";
+import { selectWalletTotal } from "../store/selectors.js";
 import EntryCard from "../components/EntryCard.jsx";
 import CurrencyFormatter from "../components/CurrencyFormatter.jsx";
-import { FaPlus, FaWallet } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { FaPlus, FaWallet, FaEye, FaEyeSlash } from "react-icons/fa";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Wallet() {
-  const { walletEntries, walletTotal, deleteWalletEntry } = useData();
+  const state = useReactor(store);
+  const walletEntries = state.data.walletEntries;
+  const walletTotal = useSelector(store, selectWalletTotal);
+  const hideBalance = state.ui.hideBalance;
+  const navigate = useNavigate();
 
   const handleDelete = (id) => {
     if (window.confirm("Are you sure you want to delete this entry?")) {
@@ -23,7 +30,20 @@ export default function Wallet() {
 
         <p className="wallet-label">Total Wallet Balance</p>
 
-        <CurrencyFormatter amount={walletTotal} className="wallet-amount" />
+        <div className="balance-row">
+          <CurrencyFormatter
+            amount={hideBalance ? 0 : walletTotal}
+            className="wallet-amount"
+          />
+
+          <button
+            className="balance-toggle-btn"
+            onClick={toggleHideBalance}
+            type="button"
+          >
+            {hideBalance ? <FaEyeSlash /> : <FaEye />}
+          </button>
+        </div>
       </div>
 
       <div className="wallet-header">

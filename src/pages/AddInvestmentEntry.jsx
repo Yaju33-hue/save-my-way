@@ -2,29 +2,31 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useReactor } from "sia-reactor/adapters/react";
 import { store } from "../store/index.js";
-import { addSavingsEntry, updateSavingsEntry } from "../store/actions.js";
+import { addInvestmentEntry, updateInvestmentEntry } from "../store/actions.js";
 import { FaArrowLeft } from "react-icons/fa";
 
-export default function AddSavingsEntry() {
+export default function AddInvestmentEntry() {
   const state = useReactor(store);
-  const savingsEntries = state.data.savingsEntries;
+  const investmentsEntries = state.data.investmentsEntries || [];
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const editingEntry = savingsEntries.find((entry) => entry.id === id);
+  const editingEntry = investmentsEntries.find((entry) => entry.id === id);
 
   const [formData, setFormData] = useState({
     name: "",
     amount: "",
-    interestRate: "",
+    currentPrice: "",
+    amountSpent: "",
   });
 
   useEffect(() => {
     if (editingEntry) {
       setFormData({
         name: editingEntry.name,
-        amount: editingEntry.amount,
-        interestRate: editingEntry.interestRate,
+        amount: String(editingEntry.amount),
+        currentPrice: String(editingEntry.currentPrice),
+        amountSpent: String(editingEntry.amountSpent),
       });
     }
   }, [editingEntry]);
@@ -45,23 +47,24 @@ export default function AddSavingsEntry() {
     const entryData = {
       ...formData,
       amount: parseFloat(formData.amount),
-      interestRate: parseFloat(formData.interestRate),
+      currentPrice: parseFloat(formData.currentPrice),
+      amountSpent: parseFloat(formData.amountSpent),
     };
 
-    id ? updateSavingsEntry(id, entryData) : addSavingsEntry(entryData);
-    navigate("/savings");
+    id ? updateInvestmentEntry(id, entryData) : addInvestmentEntry(entryData);
+    navigate("/investments");
   };
 
   return (
     <div className="container form-page">
       <div className="card form-card">
-        <button className="back-btn" onClick={() => navigate("/savings")}>
+        <button className="back-btn" onClick={() => navigate("/investments")}> 
           <FaArrowLeft />
           Back
         </button>
 
         <h2 className="form-title">
-          {id ? "Edit Savings" : "Add Savings Entry"}
+          {id ? "Edit Investment" : "Add Investment Entry"}
         </h2>
 
         <form onSubmit={handleSubmit} className="form">
@@ -74,7 +77,22 @@ export default function AddSavingsEntry() {
               placeholder=" "
               required
             />
-            <label>Savings Name</label>
+            <label>Name of Stock</label>
+          </div>
+
+          <div className="floating-field">
+            <input
+              type="number"
+              min="0"
+              step="0.0001"
+              inputMode="decimal"
+              className="input floating-input"
+              value={formData.amount}
+              onChange={(e) => handleChange("amount", sanitizeNumberInput(e.target.value))}
+              placeholder=" "
+              required
+            />
+            <label>Amount of Stock Bought</label>
           </div>
 
           <div className="floating-field">
@@ -84,29 +102,31 @@ export default function AddSavingsEntry() {
               step="0.01"
               inputMode="decimal"
               className="input floating-input"
-              value={formData.amount}
-              onChange={(e) => handleChange("amount", sanitizeNumberInput(e.target.value))}
+              value={formData.currentPrice}
+              onChange={(e) => handleChange("currentPrice", sanitizeNumberInput(e.target.value))}
               placeholder=" "
               required
             />
-            <label>Amount</label>
+            <label>Current Price per Share</label>
           </div>
 
           <div className="floating-field">
             <input
-              type="text"
+              type="number"
+              min="0"
+              step="0.01"
               inputMode="decimal"
               className="input floating-input"
-              value={formData.interestRate}
-              onChange={(e) => handleChange("interestRate", e.target.value)}
+              value={formData.amountSpent}
+              onChange={(e) => handleChange("amountSpent", sanitizeNumberInput(e.target.value))}
               placeholder=" "
               required
             />
-            <label>Annual Interest Rate (%)</label>
+            <label>Amount Spent to Acquire Stock</label>
           </div>
 
           <button type="submit" className="btn btn-primary form-btn">
-            {id ? "Update Savings" : "Add Savings"}
+            {id ? "Update Investment" : "Add Investment"}
           </button>
         </form>
       </div>

@@ -1,18 +1,16 @@
-import React, { useState, useEffect } from "react";
-import AuthProvider from "./contexts/AuthContext.jsx";
-import ThemeProvider from "./contexts/ThemeContext.jsx";
+import React from "react";
 import AppRouter from "./router/AppRouter.jsx";
+import { TimeTravelOverlay } from "sia-reactor/adapters/react";
+import { timeTravel } from "./store/index.js";
+import "sia-reactor/styles/time-travel-overlay.css";
 import "./App.css";
 
 function App() {
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <div className="App">
-          <AppRouter />
-        </div>
-      </ThemeProvider>
-    </AuthProvider>
+    <div className="App">
+      <AppRouter />
+      <TimeTravelOverlay time={timeTravel} color="#06b6d4" startOpen={false} devOnly />
+    </div>
   );
 }
 

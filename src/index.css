@@ -9,29 +9,58 @@
 }
 
 :root {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8f9fa;
-  --text-primary: #1a1a1a;
-  --text-secondary: #666666;
+  --bg-primary: #edf2fb;
+  --bg-secondary: #ebeff6;
+  --text-primary: #111827;
+  --text-secondary: #52607a;
   --card-bg: #ffffff;
-  --border-color: #e0e0e0;
-  --money-green: #00d084;
-  --money-green-dark: #00b370;
-  --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.12);
+  --border-color: #d4d8e0;
+  --money-green: #16a34a;
+  --money-green-dark: #15803d;
+  --accent-blue: #2563eb;
+  --accent-indigo: #4338ca;
+  --savings-start: #14b8a6;
+  --savings-end: #0ea5e9;
+  --danger: #ef4444;
+  --danger-dark: #b91c1c;
+  --danger-bg: rgba(239, 68, 68, 0.08);
+  --warning: #d97706;
+  --muted-overlay: rgba(15, 23, 42, 0.06);
+  --hidden-balance-color: #000000;
+  --sidebar-bg: #111827;
+  --sidebar-text: #cbd5e1;
+  --accent-cyan: #38bdf8;
+  --active-accent-bg: rgba(37, 99, 235, 0.14);
+  --active-accent-shadow: rgba(37, 99, 235, 0.22);
+  --shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+  --shadow-hover: 0 14px 36px rgba(15, 23, 42, 0.1);
 }
 
 [data-theme="dark"] {
-  --bg-primary: #121212;
-  --bg-secondary: #1e1e1e;
-  --text-primary: #ffffff;
-  --text-secondary: #b0b0b0;
-  --card-bg: #1e1e1e;
-  --border-color: #333333;
-  --money-green: #00d084;
-  --money-green-dark: #00b370;
-  --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-  --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
+  --bg-primary: #07101f;
+  --bg-secondary: #111b2f;
+  --text-primary: #eef2ff;
+  --text-secondary: #a5b4fc;
+  --card-bg: #121a31;
+  --border-color: #1e293b;
+  --money-green: #5eead4;
+  --money-green-dark: #14b8a6;
+  --accent-blue: #60a5fa;
+  --accent-indigo: #7c3aed;
+  --savings-start: #38bdf8;
+  --savings-end: #818cf8;
+  --danger: #fb7185;
+  --danger-dark: #f43f5e;
+  --warning: #facc15;
+  --muted-overlay: rgba(226, 232, 240, 0.08);
+  --hidden-balance-color: #f8fafc;
+  --sidebar-bg: #090f23;
+  --sidebar-text: #cbd5e1;
+  --accent-cyan: #38bdf8;
+  --active-accent-bg: rgba(96, 165, 250, 0.16);
+  --active-accent-shadow: rgba(96, 165, 250, 0.26);
+  --shadow: 0 18px 46px rgba(0, 0, 0, 0.55);
+  --shadow-hover: 0 20px 52px rgba(0, 0, 0, 0.65);
 }
 
 html {
@@ -93,6 +122,7 @@ h6 {
   margin-bottom: 1rem;
   box-shadow: var(--shadow);
   transition: box-shadow 0.3s ease;
+  overflow: visible;
 }
 
 .card:hover {
@@ -141,12 +171,12 @@ h6 {
 }
 
 .btn-danger {
-  background: #ff4757;
+  background: var(--danger);
   color: white;
 }
 
 .btn-danger:hover {
-  background: #ff3838;
+  background: var(--danger-dark);
 }
 
 /* =========================
@@ -472,8 +502,7 @@ input[type="number"] {
   transition: all 0.2s ease;
 }
 
-.custom-dropdown-option:hover,
-.custom-dropdown-option.selected {
+.custom-dropdown-option:hover{
   background: rgba(0, 208, 132, 0.12);
   color: var(--money-green);
   font-weight: 700;
@@ -490,7 +519,7 @@ input[type="number"] {
 }
 
 .amount.hidden {
-  color: var(--text-secondary) !important;
+  color: var(--hidden-balance-color) !important;
   font-size: 1.2rem;
 }
 
@@ -540,15 +569,49 @@ input[type="number"] {
   padding-bottom: 6rem;
 }
 
+ .home-networth-card,
+ .wallet-balance-card {
+  background: linear-gradient(135deg, rgba(22, 163, 74, 0.86), rgba(37, 99, 235, 0.86));
+  color: white;
+  border-radius: 32px;
+  padding: 2.4rem 1.5rem;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 18px 45px rgba(37, 99, 235, 0.18);
+}
+
+.home-networth-card::before,
+.wallet-balance-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 32px;
+  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.14), transparent 50%);
+  pointer-events: none;
+}
+
 .home-networth-card,
 .wallet-balance-card {
-  background: linear-gradient(135deg, var(--money-green), #0099ff);
+  position: relative;
+  overflow: hidden;
+}
+
+.investments-balance-card {
+  /* Inverted palette: green at top, indigo at bottom */
+  background: linear-gradient(to bottom, var(--money-green), var(--accent-indigo));
   color: white;
   border-radius: 28px;
   padding: 2.2rem 1.5rem;
   text-align: center;
   margin-bottom: 1.5rem;
-  box-shadow: 0 16px 40px rgba(0, 208, 132, 0.28);
+  box-shadow: 0 16px 40px rgba(108, 92, 231, 0.22);
+}
+
+/* home summary icon variant for investments */
+.investments-summary-icon {
+  background: linear-gradient(135deg, rgba(108,92,231,0.08), rgba(0,208,132,0.04));
+  color: var(--accent-indigo);
 }
 
 .home-icon,
@@ -615,12 +678,12 @@ input[type="number"] {
 }
 
 .wallet-summary-icon {
-  background: rgba(0, 153, 255, 0.12);
-  color: #0099ff;
+  background: rgba(0, 153, 255, 0.06);
+  color: var(--accent-blue);
 }
 
 .savings-summary-icon {
-  background: rgba(0, 208, 132, 0.12);
+  background: rgba(0, 208, 132, 0.06);
   color: var(--money-green);
 }
 
@@ -638,8 +701,8 @@ input[type="number"] {
 }
 
 .interest-summary-card {
-  background: rgba(0, 208, 132, 0.1);
-  border: 1px solid rgba(0, 208, 132, 0.2);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 22px;
   padding: 1.2rem;
 }
@@ -660,13 +723,14 @@ input[type="number"] {
 }
 
 .savings-balance-card {
-  background: linear-gradient(135deg, #10b981, #22c55e);
+  background: linear-gradient(135deg, rgba(22, 163, 74, 0.92), rgba(20, 184, 129, 0.82), rgba(14, 165, 233, 0.82));
   color: white;
   border-radius: 28px;
   padding: 2rem 1.5rem;
   text-align: center;
   margin-bottom: 1.5rem;
-  box-shadow: 0 16px 40px rgba(16, 185, 129, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 16px 40px rgba(22, 163, 74, 0.16);
 }
 
 .wallet-header,
@@ -707,6 +771,7 @@ input[type="number"] {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+  overflow: visible;
 }
 
 .interest-box {
@@ -730,6 +795,14 @@ input[type="number"] {
   color: white;
   font-weight: 800;
   font-size: 1.1rem;
+}
+
+.profit-text {
+  color: var(--money-green) !important;
+}
+
+.loss-text {
+  color: var(--danger) !important;
 }
 
 /* =========================
@@ -1009,7 +1082,7 @@ input[type="number"] {
 }
 
 .status-hidden {
-  color: #ff4757 !important;
+  color: var(--danger) !important;
 }
 
 .settings-header {
@@ -1137,7 +1210,7 @@ input[type="number"] {
 /* OPTIONAL: Make delete slightly different */
 .dropdown-item.delete:hover {
   background: rgba(255, 71, 87, 0.12);
-  color: #ff4757;
+  color: var(--danger);
 }
 
 .entry-card-content {
@@ -1167,12 +1240,25 @@ input[type="number"] {
 }
 
 .entry-tag {
-  background: rgba(0, 208, 132, 0.1);
+  background: var(--muted-overlay);
 }
 
 .recurring-tag {
-  background: rgba(245, 124, 0, 0.12);
-  color: #f57c00;
+  background: rgba(245, 124, 0, 0.06);
+  color: var(--warning);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.recurring-tag.pending-recurring {
+  background: rgba(255, 211, 119, 0.18);
+  color: var(--warning);
+}
+
+.clock-icon {
+  width: 16px;
+  height: 16px;
 }
 
 .entry-amount-wrap {
@@ -1181,6 +1267,7 @@ input[type="number"] {
 
 .entry-menu {
   position: relative;
+  z-index: 2000;
 }
 
 .entry-menu-btn {
@@ -1214,6 +1301,7 @@ input[type="number"] {
 .dropdown-menu {
   padding: 0.4rem;
   overflow: hidden;
+  z-index: 2001;
 }
 
 .dropdown-item {
@@ -1243,7 +1331,7 @@ input[type="number"] {
 
 .delete-item:hover {
   background: rgba(255, 71, 87, 0.12);
-  color: #ff4757;
+  color: var(--danger);
 }
 
 /* Layout */
@@ -1266,8 +1354,8 @@ input[type="number"] {
 
   width: 240px;
 
-  background: #111827;
-  color: white;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
 
   padding: 22px 18px;
   border-radius: 22px;
@@ -1287,7 +1375,7 @@ input[type="number"] {
 .side-nav a {
   position: relative;
 
-  color: #cbd5e1;
+  color: var(--sidebar-text);
   text-decoration: none;
 
   padding: 12px 14px;
@@ -1323,14 +1411,14 @@ input[type="number"] {
    ACTIVE STATE
 ========================= */
 
-.side-nav a.active {
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
+  .side-nav a.active {
+  background: var(--active-accent-bg);
+  color: var(--accent-cyan);
 
   font-weight: 700;
   border-radius: 999px;
 
-  box-shadow: 0 10px 25px rgba(56, 189, 248, 0.25);
+  box-shadow: 0 10px 25px var(--active-accent-shadow);
 }
 
 /* LEFT INDICATOR BAR */
@@ -1345,7 +1433,7 @@ input[type="number"] {
   width: 4px;
   height: 60%;
 
-  background: #38bdf8;
+  background: var(--accent-cyan);
   border-radius: 10px;
 }
 
@@ -1394,3 +1482,4 @@ body {
   font-size: 1.4rem;
   margin-bottom: 20px;
 }
+
