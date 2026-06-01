@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useReactor, useSelector } from "sia-reactor/adapters/react";
 import { store } from "../store/index.js";
 import { deleteWalletEntry, toggleHideBalance } from "../store/actions.js";
 import { selectWalletTotal } from "../store/selectors.js";
+import { confirmDeleteAction } from "../utils/confirmDialog.js";
 import EntryCard from "../components/EntryCard.jsx";
 import CurrencyFormatter from "../components/CurrencyFormatter.jsx";
 import { FaPlus, FaWallet, FaEye, FaEyeSlash } from "react-icons/fa";
@@ -15,10 +16,12 @@ export default function Wallet() {
   const hideBalance = state.ui.hideBalance;
   const navigate = useNavigate();
 
+  useEffect(() => {
+    document.title = "SaveMyWay — Wallet";
+  }, []);
+
   const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this entry?")) {
-      deleteWalletEntry(id);
-    }
+    confirmDeleteAction(() => deleteWalletEntry(id));
   };
 
   return (
@@ -40,6 +43,7 @@ export default function Wallet() {
             className="balance-toggle-btn"
             onClick={toggleHideBalance}
             type="button"
+            aria-label={hideBalance ? "Show balance" : "Hide balance"}
           >
             {hideBalance ? <FaEyeSlash /> : <FaEye />}
           </button>

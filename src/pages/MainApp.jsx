@@ -16,15 +16,15 @@ export default function MainApp() {
   const location = useLocation();
 
   return (
-    <div className="app-layout">
+    <div
+  className="app-layout"
+  data-page={location.pathname.split("/")[1] || "home"}
+>
       {/* Desktop Sidebar */}
       <SideNav />
 
       <div className="main-content">
-        <main
-          className="container"
-          style={{ paddingBottom: "80px", paddingTop: "20px" }}
-        >
+        <main className="container">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/wallet" element={<Wallet />} />

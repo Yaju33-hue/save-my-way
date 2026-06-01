@@ -3,6 +3,7 @@ import { FaClock } from "react-icons/fa";
 import { useReactor } from "sia-reactor/adapters/react";
 import { store } from "../store/index.js";
 import { isPendingRecurringEntry } from "../store/selectors.js";
+import { getCurrencySymbol, formatCurrency } from "../utils/currency.js";
 import DropdownMenu from "./DropdownMenu.jsx";
 
 export default function EntryCard({
@@ -16,15 +17,6 @@ export default function EntryCard({
   const currency = state.ui.currency;
   const [showDropdown, setShowDropdown] = useState(false);
   const menuRef = useRef(null);
-
-  const currencySymbols = {
-    NGN: "₦",
-    USD: "$",
-    EUR: "€",
-    GBP: "£",
-    GHS: "₵",
-  };
-  const symbol = currencySymbols[currency] ?? currency;
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -44,34 +36,34 @@ export default function EntryCard({
   };
 
   const isPending = isPendingRecurringEntry(entry);
-  const formattedAmount = hideBalance
-    ? "****"
-    : `${symbol}${entry.amount.toLocaleString("en-US", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })}`;
+  const formattedAmount = hideBalance ? "••••" : formatCurrency(entry.amount, currency);
 
   return (
-    <div className="card fade-in-up">
+    <div className={`card fade-in-up ${showDropdown ? "card--menu-open" : ""}`}>
       <div className="entry-card-content">
         <div className="entry-info">
           <h3 className="bold">{entry.name}</h3>
+          {type === "savings" && entry.interestRate && (
+            <p className="entry-interest-rate">
+              {hideBalance ? "••••" : `${entry.interestRate}% p.a.`}
+            </p>
+          )}
+          {(type === "wallet" || entry.recurring) && (
+            <div className="entry-tags">
+              {type === "wallet" && (
+                <span className="entry-tag" style={{ color: getTypeColor(entry.type) }}>
+                  {hideBalance ? "••••" : entry.type?.toUpperCase()}
+                </span>
+              )}
 
-          <div className="entry-tags">
-            <span
-              className="entry-tag"
-              style={{ color: getTypeColor(entry.type) }}
-            >
-              {entry.type?.toUpperCase()}
-            </span>
-
-            {entry.recurring && (
-              <span className={`recurring-tag ${isPending ? "pending-recurring" : ""}`}>
-                RECURRING
-                {isPending && <FaClock className="clock-icon" />}
-              </span>
-            )}
-          </div>
+              {entry.recurring && (
+                <span className={`recurring-tag ${isPending ? "pending-recurring" : ""}`}>
+                  RECURRING
+                  {isPending && <FaClock className="clock-icon" />}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="entry-amount-wrap">
@@ -85,6 +77,7 @@ export default function EntryCard({
             className={`entry-menu-btn ${showDropdown ? "active" : ""}`}
             onClick={() => setShowDropdown((prev) => !prev)}
             type="button"
+            aria-label="Open entry menu"
           >
             ⋮
           </button>

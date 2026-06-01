@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useReactor, useSelector } from "sia-reactor/adapters/react";
 import { store } from "../store/index.js";
 import { toggleHideBalance } from "../store/actions.js";
@@ -31,6 +31,10 @@ export default function Home() {
 
   const navigate = useNavigate();
 
+  useEffect(() => {
+    document.title = "SaveMyWay — Home";
+  }, []);
+
   const netWorth = walletTotal + savingsTotal + investmentsTotal;
 
   return (
@@ -52,6 +56,7 @@ export default function Home() {
             className="balance-toggle-btn"
             onClick={toggleHideBalance}
             type="button"
+            aria-label={hideBalance ? "Show balance" : "Hide balance"}
           >
             {hideBalance ? <FaEyeSlash /> : <FaEye />}
           </button>
@@ -59,10 +64,12 @@ export default function Home() {
       </div>
 
       <div className="home-summary-grid">
-        {/* WALLET */}
         <div
           className="home-summary-card clickable-card"
           onClick={() => navigate("/wallet")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Enter" && navigate("/wallet")}
         >
           <div className="summary-icon wallet-summary-icon">
             <FaWallet />
@@ -75,10 +82,12 @@ export default function Home() {
           />
         </div>
 
-        {/* SAVINGS */}
         <div
           className="home-summary-card clickable-card"
           onClick={() => navigate("/savings")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Enter" && navigate("/savings")}
         >
           <div className="summary-icon savings-summary-icon">
             <FaPiggyBank />
@@ -91,10 +100,12 @@ export default function Home() {
           />
         </div>
 
-        {/* INVESTMENTS */}
         <div
           className="home-summary-card clickable-card"
           onClick={() => navigate("/investments")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Enter" && navigate("/investments")}
         >
           <div className="summary-icon investments-summary-icon">
             <FaUniversity />
@@ -105,15 +116,17 @@ export default function Home() {
             amount={hideBalance ? 0 : investmentsTotal}
             className="summary-amount"
           />
-          <p
-            style={{
-              color: totalInvestmentProfitLoss >= 0 ? "var(--money-green)" : "var(--danger)",
-              marginTop: "0.5rem",
-              fontWeight: 700,
-            }}
-          >
-            {totalInvestmentProfitLoss >= 0 ? "Profit" : "Loss"}
-          </p>
+          {!hideBalance && state.data.investmentsEntries && state.data.investmentsEntries.length > 0 && (
+            <p
+              style={{
+                color: totalInvestmentProfitLoss >= 0 ? "var(--money-green)" : "var(--danger)",
+                marginTop: "0.5rem",
+                fontWeight: 700,
+              }}
+            >
+              {totalInvestmentProfitLoss >= 0 ? "Profit" : "Loss"}
+            </p>
+          )}
         </div>
       </div>
 

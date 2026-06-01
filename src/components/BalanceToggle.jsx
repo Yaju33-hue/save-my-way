@@ -10,7 +10,11 @@ export default function BalanceToggle() {
   return (
     <div className="toggle-container">
       <span className="bold">Hide Balances</span>
-      <button className="toggle-btn" onClick={toggleHideBalance}>
+      <button
+        className="toggle-btn"
+        onClick={toggleHideBalance}
+        aria-label={state.ui.hideBalance ? "Show balances" : "Hide balances"}
+      >
         {state.ui.hideBalance ? <FaEye /> : <FaEyeSlash />}
       </button>
     </div>

@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useReactor, useSelector } from "sia-reactor/adapters/react";
 import { store } from "../store/index.js";
 import { deleteSavingsEntry, toggleHideBalance } from "../store/actions.js";
 import { selectSavingsTotal, selectTotalInterest } from "../store/selectors.js";
 import { calculateInterest } from "../store/actions.js";
+import { confirmDeleteAction } from "../utils/confirmDialog.js";
 import EntryCard from "../components/EntryCard.jsx";
 import CurrencyFormatter from "../components/CurrencyFormatter.jsx";
 import { FaPlus, FaPiggyBank, FaEye, FaEyeSlash } from "react-icons/fa";
@@ -17,10 +18,12 @@ export default function Savings() {
   const hideBalance = state.ui.hideBalance;
   const navigate = useNavigate();
 
+  useEffect(() => {
+    document.title = "SaveMyWay — Savings";
+  }, []);
+
   const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this savings entry?")) {
-      deleteSavingsEntry(id);
-    }
+    confirmDeleteAction(() => deleteSavingsEntry(id));
   };
 
   return (
@@ -42,6 +45,7 @@ export default function Savings() {
             className="balance-toggle-btn"
             onClick={toggleHideBalance}
             type="button"
+            aria-label={hideBalance ? "Show balance" : "Hide balance"}
           >
             {hideBalance ? <FaEyeSlash /> : <FaEye />}
           </button>

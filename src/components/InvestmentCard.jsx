@@ -1,15 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useReactor } from "sia-reactor/adapters/react";
 import { store } from "../store/index.js";
+import { formatCurrency } from "../utils/currency.js";
 import DropdownMenu from "./DropdownMenu.jsx";
-
-const currencySymbols = {
-  NGN: "₦",
-  USD: "$",
-  EUR: "€",
-  GBP: "£",
-  GHS: "₵",
-};
 
 export default function InvestmentCard({ entry, onEdit, onDelete }) {
   const state = useReactor(store);
@@ -17,8 +10,6 @@ export default function InvestmentCard({ entry, onEdit, onDelete }) {
   const currency = state.ui.currency;
   const [showDropdown, setShowDropdown] = useState(false);
   const menuRef = useRef(null);
-
-  const symbol = currencySymbols[currency] ?? currency;
 
   const amount = parseFloat(entry.amount) || 0;
   const currentPrice = parseFloat(entry.currentPrice) || 0;
@@ -38,25 +29,23 @@ export default function InvestmentCard({ entry, onEdit, onDelete }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const formatMoney = (value) =>
-    `${symbol}${value.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-
   return (
     <div className="card fade-in-up">
       <div className="entry-card-content">
         <div className="entry-info">
-          <h3 className="bold">{entry.name}</h3>
+          <h3 className="bold">{hideBalance ? "••••" : entry.name}</h3>
 
           <div className="entry-tags">
-            <span className="entry-tag">Shares: {hideBalance ? "****" : amount}</span>
-            <span className="entry-tag">Price: {formatMoney(currentPrice)}</span>
+            <span className="entry-tag">
+              Shares: {hideBalance ? "••••" : amount}
+            </span>
+            <span className="entry-tag">
+              Price: {hideBalance ? "••••" : formatCurrency(currentPrice, currency)}
+            </span>
           </div>
 
           <p style={{ marginTop: "0.85rem", color: "var(--text-secondary)" }}>
-            Spent: {hideBalance ? "****" : formatMoney(amountSpent)}
+            Spent: {hideBalance ? "••••" : formatCurrency(amountSpent, currency)}
           </p>
         </div>
 
@@ -65,7 +54,7 @@ export default function InvestmentCard({ entry, onEdit, onDelete }) {
             className="amount"
             style={{ color: isProfit ? "var(--money-green)" : "var(--danger)" }}
           >
-            {hideBalance ? "****" : formatMoney(currentValue)}
+            {hideBalance ? "••••" : formatCurrency(currentValue, currency)}
           </div>
 
           <div
@@ -75,7 +64,7 @@ export default function InvestmentCard({ entry, onEdit, onDelete }) {
               marginTop: "0.5rem",
             }}
           >
-            {isProfit ? "Profit" : "Loss"}: {hideBalance ? "****" : formatMoney(Math.abs(profitLoss))}
+            {isProfit ? "Profit" : "Loss"}: {hideBalance ? "••••" : formatCurrency(Math.abs(profitLoss), currency)}
           </div>
         </div>
 
@@ -84,6 +73,7 @@ export default function InvestmentCard({ entry, onEdit, onDelete }) {
             className={`entry-menu-btn ${showDropdown ? "active" : ""}`}
             onClick={() => setShowDropdown((prev) => !prev)}
             type="button"
+            aria-label="Open investment menu"
           >
             ⋮
           </button>

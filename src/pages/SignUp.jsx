@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { signUp } from "../store/actions.js";
 import { useNavigate } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
@@ -11,20 +11,28 @@ export default function SignUp() {
     password: "",
   });
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "SaveMyWay — Sign Up";
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setIsLoading(true);
+
     const { name, phone, email, password } = formData;
 
-    // Basic validation
     if (!name || !phone || !email || !password) {
       setError("Please fill in all fields");
+      setIsLoading(false);
       return;
     }
 
     if (password.length < 6) {
       setError("Password must be at least 6 characters");
+      setIsLoading(false);
       return;
     }
 
@@ -40,6 +48,8 @@ export default function SignUp() {
       navigate("/");
     } catch (err) {
       setError("Sign up failed");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -95,7 +105,6 @@ export default function SignUp() {
             </div>
           )}
 
-          {/* NEW: Name Field */}
           <div className="form-group">
             <label className="label">Full Name</label>
             <input
@@ -109,7 +118,6 @@ export default function SignUp() {
             />
           </div>
 
-          {/* NEW: Phone Field */}
           <div className="form-group">
             <label className="label">Phone Number</label>
             <input
@@ -155,12 +163,12 @@ export default function SignUp() {
             type="submit"
             className="btn btn-primary"
             style={{ width: "100%", marginTop: "1rem" }}
+            disabled={isLoading}
           >
-            Create Account
+            {isLoading ? "Creating account..." : "Create Account"}
           </button>
         </form>
 
-        {/* NEW GREEN HOVER LINK */}
         <div style={{ textAlign: "center", marginTop: "1.5rem" }}>
           <a
             href="/signin"

@@ -35,6 +35,7 @@ export default function AddWalletEntry() {
   const dayOfMonthRef = useRef(null);
   const monthRef = useRef(null);
   const dayRef = useRef(null);
+  const formRef = useRef(null);
 
   const typeOptions = [
     { value: "incoming", label: "Incoming" },
@@ -78,6 +79,21 @@ export default function AddWalletEntry() {
     setDayOpen(false);
   };
 
+const scrollToBottom = () => {
+  setTimeout(() => {
+    window.scrollTo({
+      top: document.documentElement.scrollHeight,
+      behavior: "smooth",
+    });
+  }, 150);
+};
+
+  useEffect(() => {
+    document.title = id
+      ? "SaveMyWay — Edit Wallet Entry"
+      : "SaveMyWay — Add Wallet Entry";
+  }, [id]);
+
   useEffect(() => {
     if (editingEntry) setFormData(editingEntry);
   }, [editingEntry]);
@@ -101,7 +117,28 @@ export default function AddWalletEntry() {
   const sanitizeNumberInput = (value) => {
     const sanitized = value.replace(/[^0-9.]/g, "");
     const parts = sanitized.split(".");
-    return parts.length <= 1 ? sanitized : `${parts[0]}.${parts.slice(1).join("")}`;
+    return parts.length <= 1
+      ? sanitized
+      : `${parts[0]}.${parts.slice(1).join("")}`;
+  };
+
+  const handleNumberKeyDown = (e) => {
+    if (
+      [46, 8, 9, 27, 13, 110, 190, 173].indexOf(e.keyCode) !== -1 ||
+      (e.keyCode === 65 && e.ctrlKey === true) ||
+      (e.keyCode === 67 && e.ctrlKey === true) ||
+      (e.keyCode === 86 && e.ctrlKey === true) ||
+      (e.keyCode === 88 && e.ctrlKey === true) ||
+      (e.keyCode >= 35 && e.keyCode <= 39)
+    ) {
+      return;
+    }
+    if (
+      (e.shiftKey || e.keyCode < 48 || e.keyCode > 57) &&
+      (e.keyCode < 96 || e.keyCode > 105)
+    ) {
+      e.preventDefault();
+    }
   };
 
   const handleChange = (field, value) => {
@@ -121,9 +158,14 @@ export default function AddWalletEntry() {
   };
 
   return (
-    <div className="container form-page">
+   <div className="container form-page" style={{ paddingBottom: "150px" }}>
       <div className="card form-card">
-        <button className="back-btn" onClick={() => navigate("/wallet")}>
+        <button
+          className="back-btn"
+          onClick={() => navigate("/wallet")}
+          type="button"
+          aria-label="Go back to wallet"
+        >
           <FaArrowLeft />
           Back
         </button>
@@ -152,7 +194,10 @@ export default function AddWalletEntry() {
               inputMode="decimal"
               className="input floating-input"
               value={formData.amount}
-              onChange={(e) => handleChange("amount", sanitizeNumberInput(e.target.value))}
+              onChange={(e) =>
+                handleChange("amount", sanitizeNumberInput(e.target.value))
+              }
+              onKeyDown={handleNumberKeyDown}
               onFocus={closeAllDropdowns}
               placeholder=" "
               required
@@ -210,6 +255,7 @@ export default function AddWalletEntry() {
                 onChange={(e) => {
                   closeAllDropdowns();
                   handleChange("recurring", e.target.checked);
+                  if (e.target.checked) scrollToBottom();
                 }}
               />
               <span className="checkmark"></span>
@@ -231,6 +277,7 @@ export default function AddWalletEntry() {
                       } else {
                         closeAllDropdowns();
                         setFrequencyOpen(true);
+                        scrollToBottom();
                       }
                     }}
                   >
@@ -245,13 +292,12 @@ export default function AddWalletEntry() {
                           key={option.value}
                           type="button"
                           className={`custom-dropdown-option ${
-                            formData.frequency === option.value
-                              ? "selected"
-                              : ""
+                            formData.frequency === option.value ? "selected" : ""
                           }`}
                           onClick={() => {
                             handleChange("frequency", option.value);
                             setFrequencyOpen(false);
+                            scrollToBottom();
                           }}
                         >
                           {option.label}
@@ -276,6 +322,7 @@ export default function AddWalletEntry() {
                         } else {
                           closeAllDropdowns();
                           setDayOfMonthOpen(true);
+                          scrollToBottom();
                         }
                       }}
                     >
@@ -323,6 +370,7 @@ export default function AddWalletEntry() {
                           } else {
                             closeAllDropdowns();
                             setMonthOpen(true);
+                            scrollToBottom();
                           }
                         }}
                       >
@@ -337,9 +385,7 @@ export default function AddWalletEntry() {
                               key={option.value}
                               type="button"
                               className={`custom-dropdown-option ${
-                                formData.month === option.value
-                                  ? "selected"
-                                  : ""
+                                formData.month === option.value ? "selected" : ""
                               }`}
                               onClick={() => {
                                 handleChange("month", option.value);
@@ -367,6 +413,7 @@ export default function AddWalletEntry() {
                           } else {
                             closeAllDropdowns();
                             setDayOpen(true);
+                            scrollToBottom();
                           }
                         }}
                       >
@@ -402,7 +449,11 @@ export default function AddWalletEntry() {
             </>
           )}
 
-          <button type="submit" className="btn btn-primary form-btn">
+          <button
+            ref={formRef}
+            type="submit"
+            className="btn btn-primary form-btn"
+          >
             {id ? "Update Entry" : "Add Entry"}
           </button>
         </form>

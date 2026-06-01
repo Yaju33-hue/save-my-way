@@ -8,10 +8,10 @@ import {
   selectInvestmentsTotal,
 } from "../store/selectors.js";
 import CurrencyFormatter from "../components/CurrencyFormatter.jsx";
-import { FaSignOutAlt, FaCog, FaArrowLeft } from "react-icons/fa";
+import { FaSignOutAlt, FaCog } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
-export default function Account({ onLogout }) {
+export default function Account() {
   const state = useReactor(store);
   const user = state.auth.user;
   const theme = state.ui.theme;
@@ -29,6 +29,10 @@ export default function Account({ onLogout }) {
   const currencyRef = useRef(null);
 
   const currencies = ["NGN", "USD", "EUR", "GBP", "GHS"];
+
+  useEffect(() => {
+    document.title = "SaveMyWay — Account";
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -49,8 +53,6 @@ export default function Account({ onLogout }) {
 
   return (
     <div className="account-page">
-     
-
       <div className="card account-card">
         <h2 className="section-title">Profile</h2>
 
@@ -74,17 +76,23 @@ export default function Account({ onLogout }) {
 
         <div className="account-summary-grid">
           <div className="account-summary-box">
-            <p style={{ fontSize: "0.85rem", opacity: 0.9, marginBottom: "0.5rem" }}>Total Wallet</p>
+            <p style={{ fontSize: "0.85rem", opacity: 0.9, marginBottom: "0.5rem" }}>
+              Total Wallet
+            </p>
             <CurrencyFormatter amount={walletTotal} className="summary-amount" />
           </div>
 
           <div className="account-summary-box">
-            <p style={{ fontSize: "0.85rem", opacity: 0.9, marginBottom: "0.5rem" }}>Total Savings</p>
+            <p style={{ fontSize: "0.85rem", opacity: 0.9, marginBottom: "0.5rem" }}>
+              Total Savings
+            </p>
             <CurrencyFormatter amount={savingsTotal} className="summary-amount" />
           </div>
 
           <div className="account-summary-box">
-            <p style={{ fontSize: "0.85rem", opacity: 0.9, marginBottom: "0.5rem" }}>Total Investments</p>
+            <p style={{ fontSize: "0.85rem", opacity: 0.9, marginBottom: "0.5rem" }}>
+              Total Investments
+            </p>
             <CurrencyFormatter amount={investmentsTotal} className="summary-amount" />
           </div>
         </div>
@@ -102,8 +110,9 @@ export default function Account({ onLogout }) {
           <h2 className="section-title">Settings</h2>
 
           <button
-            className="settings-btn"
+            className={`settings-btn ${showSettings ? "open" : ""}`}
             onClick={() => setShowSettings((prev) => !prev)}
+            aria-label="Toggle settings"
           >
             <FaCog />
           </button>
@@ -145,25 +154,27 @@ export default function Account({ onLogout }) {
             <div className="toggle-row">
               <span>Dark Mode</span>
 
-              <label className="custom-checkbox">
+              <label className="custom-toggle">
                 <input
                   type="checkbox"
                   checked={theme === "dark"}
                   onChange={toggleTheme}
+                  aria-label="Toggle dark mode"
                 />
-                <span className="checkmark"></span>
+                <span className="toggle-slider"></span>
               </label>
             </div>
             <div className="toggle-row">
               <span>Hide Balance</span>
 
-              <label className="custom-checkbox">
+              <label className="custom-toggle">
                 <input
                   type="checkbox"
                   checked={hideBalance}
                   onChange={toggleHideBalance}
+                  aria-label="Toggle hide balance"
                 />
-                <span className="checkmark"></span>
+                <span className="toggle-slider"></span>
               </label>
             </div>
           </div>

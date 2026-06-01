@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { signIn } from "../store/actions.js";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
@@ -7,11 +7,18 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
+  useEffect(() => {
+    document.title = "SaveMyWay — Sign In";
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
+
     try {
       const success = signIn(email, password);
       if (success) {
@@ -21,6 +28,8 @@ export default function SignIn() {
       }
     } catch (err) {
       setError("Sign in failed");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -95,8 +104,9 @@ export default function SignIn() {
             type="submit"
             className="btn btn-primary"
             style={{ width: "100%", marginTop: "1rem" }}
+            disabled={isLoading}
           >
-            Sign In
+            {isLoading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
