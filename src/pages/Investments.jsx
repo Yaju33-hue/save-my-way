@@ -1,12 +1,17 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useReactor, useSelector } from "sia-reactor/adapters/react";
 import { store } from "../store/index.js";
-import { deleteInvestmentEntry, toggleHideBalance } from "../store/actions.js";
+import {
+  deleteInvestmentEntry,
+  toggleHideBalance,
+  updateInvestmentEntry,
+} from "../store/actions.js";
 import {
   selectInvestmentsTotal,
   selectInvestmentProfitLoss,
 } from "../store/selectors.js";
 import { confirmDeleteAction } from "../utils/confirmDialog.js";
+import { getStockPrice } from "../utils/marketData.js";
 import InvestmentCard from "../components/InvestmentCard.jsx";
 import CurrencyFormatter from "../components/CurrencyFormatter.jsx";
 import { FaPlus, FaUniversity, FaEye, FaEyeSlash } from "react-icons/fa";
@@ -19,10 +24,59 @@ export default function Investments() {
   const totalProfitLoss = useSelector(store, selectInvestmentProfitLoss);
   const hideBalance = state.ui.hideBalance;
   const navigate = useNavigate();
+  const trackedInvestmentsKey = investmentEntries
+    .map((entry) => `${entry.id}:${entry.symbol || ""}:${entry.market || ""}`)
+    .join("|");
+  const investmentEntriesRef = useRef(investmentEntries);
+
+  useEffect(() => {
+    investmentEntriesRef.current = investmentEntries;
+  }, [investmentEntries]);
 
   useEffect(() => {
     document.title = "SaveMyWay — Investments";
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const refreshPrices = async () => {
+      const trackedEntries = investmentEntriesRef.current.filter(
+        (entry) => entry.symbol && entry.market,
+      );
+
+      for (const entry of trackedEntries) {
+        try {
+          const quote = await getStockPrice(entry.symbol, entry.market);
+          if (cancelled) return;
+
+          updateInvestmentEntry(entry.id, {
+            currentPrice: quote.price,
+            priceUpdatedAt: quote.updatedAt,
+            priceSource: quote.source,
+            priceError: quote.error || "",
+          });
+        } catch (error) {
+          if (cancelled) return;
+          updateInvestmentEntry(entry.id, {
+            priceError: error.message || "Price refresh failed",
+          });
+        }
+      }
+    };
+
+    refreshPrices();
+
+    const interval = window.setInterval(refreshPrices, 3 * 60 * 1000);
+    const handleFocus = () => refreshPrices();
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [trackedInvestmentsKey]);
 
   const handleDelete = (id) => {
     confirmDeleteAction(() => deleteInvestmentEntry(id));

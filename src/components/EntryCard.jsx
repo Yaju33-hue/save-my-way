@@ -3,7 +3,7 @@ import { FaClock } from "react-icons/fa";
 import { useReactor } from "sia-reactor/adapters/react";
 import { store } from "../store/index.js";
 import { isPendingRecurringEntry } from "../store/selectors.js";
-import { getCurrencySymbol, formatCurrency } from "../utils/currency.js";
+import { formatCurrency } from "../utils/currency.js";
 import DropdownMenu from "./DropdownMenu.jsx";
 
 export default function EntryCard({

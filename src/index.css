@@ -1318,7 +1318,7 @@ input[type="number"] {
   border-radius: 22px;
   display: flex;
   flex-direction: column;
-  gap: 50px;
+  gap: 5px;
   box-shadow: 0 12px 35px rgba(0, 0, 0, 0.25);
   overflow-y: auto;
   z-index: 1000;
@@ -2810,6 +2810,24 @@ overflow: hidden;
   letter-spacing: 0.3px;
 }
 
+.price-lookup-note,
+.price-updated-label {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-top: 0.45rem;
+}
+
+.price-lookup-note.error,
+.price-updated-label--warning {
+  color: var(--warning);
+}
+
+.readonly-input {
+  background: var(--bg-secondary);
+  cursor: not-allowed;
+}
+
 .recurring-tag {
   background: rgba(245, 124, 0, 0.06);
   color: var(--warning);
@@ -3103,4 +3121,3 @@ overflow: hidden;
     background: linear-gradient(135deg, #3d2a80, #2a4a80);
   }
 }
-

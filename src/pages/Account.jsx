@@ -9,7 +9,6 @@ import {
 } from "../store/selectors.js";
 import CurrencyFormatter from "../components/CurrencyFormatter.jsx";
 import { FaSignOutAlt, FaCog } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
 
 export default function Account() {
   const state = useReactor(store);
@@ -20,8 +19,6 @@ export default function Account() {
   const walletTotal = useSelector(store, selectWalletTotal);
   const savingsTotal = useSelector(store, selectSavingsTotal);
   const investmentsTotal = useSelector(store, selectInvestmentsTotal);
-
-  const navigate = useNavigate();
 
   const [showSettings, setShowSettings] = useState(false);
   const [currencyOpen, setCurrencyOpen] = useState(false);

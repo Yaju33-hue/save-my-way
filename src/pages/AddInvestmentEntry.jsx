@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useReactor } from "sia-reactor/adapters/react";
 import { store } from "../store/index.js";
 import { addInvestmentEntry, updateInvestmentEntry } from "../store/actions.js";
+import { getStockPrice, searchStock, hasMarketDataKeys } from "../utils/marketData.js";
 import { FaArrowLeft } from "react-icons/fa";
 
 export default function AddInvestmentEntry() {
@@ -18,7 +19,14 @@ export default function AddInvestmentEntry() {
     amount: "",
     currentPrice: "",
     amountSpent: "",
+    symbol: "",
+    market: "",
+    priceUpdatedAt: "",
+    priceSource: "",
   });
+  const [priceLookupStatus, setPriceLookupStatus] = useState("");
+  const [priceLookupError, setPriceLookupError] = useState("");
+  const [matchedStock, setMatchedStock] = useState(null);
 
   useEffect(() => {
     document.title = id ? "SaveMyWay — Edit Investment" : "SaveMyWay — Add Investment";
@@ -31,9 +39,81 @@ export default function AddInvestmentEntry() {
         amount: String(editingEntry.amount),
         currentPrice: String(editingEntry.currentPrice),
         amountSpent: String(editingEntry.amountSpent),
+        symbol: editingEntry.symbol || "",
+        market: editingEntry.market || "",
+        priceUpdatedAt: editingEntry.priceUpdatedAt || "",
+        priceSource: editingEntry.priceSource || "",
       });
+      if (editingEntry.symbol) {
+        setMatchedStock({
+          symbol: editingEntry.symbol,
+          market: editingEntry.market,
+          name: editingEntry.name,
+        });
+      }
     }
   }, [editingEntry]);
+
+  useEffect(() => {
+    const query = formData.name.trim();
+    const keys = hasMarketDataKeys();
+
+    if (query.length < 2) {
+      setMatchedStock(null);
+      setPriceLookupStatus("");
+      setPriceLookupError("");
+      return;
+    }
+
+    if (!keys.finnhub && !keys.ngx) {
+      setPriceLookupStatus("");
+      setPriceLookupError("Add API keys to auto-fill market prices.");
+      return;
+    }
+
+    let cancelled = false;
+    const lookup = setTimeout(async () => {
+      setPriceLookupStatus("Looking up stock...");
+      setPriceLookupError("");
+
+      try {
+        const result = await searchStock(query);
+        if (cancelled) return;
+
+        if (!result) {
+          setMatchedStock(null);
+          setPriceLookupStatus("");
+          setPriceLookupError("No stock match found yet.");
+          return;
+        }
+
+        setMatchedStock(result);
+        setPriceLookupStatus(`Matched ${result.displaySymbol || result.symbol}`);
+
+        const quote = await getStockPrice(result.symbol, result.market, { force: true });
+        if (cancelled) return;
+
+        setFormData((prev) => ({
+          ...prev,
+          symbol: result.symbol,
+          market: result.market,
+          currentPrice: String(quote.price),
+          priceUpdatedAt: quote.updatedAt,
+          priceSource: quote.source,
+        }));
+        setPriceLookupStatus(`Price loaded for ${result.displaySymbol || result.symbol}`);
+      } catch (error) {
+        if (cancelled) return;
+        setPriceLookupStatus("");
+        setPriceLookupError(error.message || "Could not auto-fill the latest price.");
+      }
+    }, 700);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(lookup);
+    };
+  }, [formData.name]);
 
   const sanitizeNumberInput = (value) => {
     const sanitized = value.replace(/[^0-9.]/g, "");
@@ -107,6 +187,15 @@ export default function AddInvestmentEntry() {
             <label>Name of Stock</label>
           </div>
 
+          {(priceLookupStatus || priceLookupError || matchedStock) && (
+            <div className={`price-lookup-note ${priceLookupError ? "error" : ""}`}>
+              {priceLookupError ||
+                `${priceLookupStatus}${
+                  matchedStock?.market ? ` • ${matchedStock.market}` : ""
+                }`}
+            </div>
+          )}
+
           <div className="floating-field">
             <input
               type="number"
@@ -129,14 +218,14 @@ export default function AddInvestmentEntry() {
               min="0"
               step="0.01"
               inputMode="decimal"
-              className="input floating-input"
+              className="input floating-input readonly-input"
               value={formData.currentPrice}
-              onChange={(e) => handleChange("currentPrice", sanitizeNumberInput(e.target.value))}
+              readOnly
               onKeyDown={handleNumberKeyDown}
               placeholder=" "
               required
             />
-            <label>Current Price per Share</label>
+            <label>Current Price per Share (Auto)</label>
           </div>
 
           <div className="floating-field">
