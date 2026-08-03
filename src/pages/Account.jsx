@@ -1,14 +1,21 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useReactor, useSelector } from "sia-reactor/adapters/react";
 import { store } from "../store/index.js";
-import { toggleTheme, updateCurrency, signOut, toggleHideBalance } from "../store/actions.js";
+import {
+  toggleTheme,
+  updateCurrency,
+  signOut,
+  toggleHideBalance,
+  refreshRates,
+} from "../store/actions.js";
 import {
   selectWalletTotal,
   selectSavingsTotal,
   selectInvestmentsTotal,
 } from "../store/selectors.js";
+import { getExchangeRates } from "../utils/currency.js";
 import CurrencyFormatter from "../components/CurrencyFormatter.jsx";
-import { FaSignOutAlt, FaCog } from "react-icons/fa";
+import { FaSignOutAlt, FaCog, FaSyncAlt } from "react-icons/fa";
 
 export default function Account() {
   const state = useReactor(store);
@@ -22,10 +29,12 @@ export default function Account() {
 
   const [showSettings, setShowSettings] = useState(false);
   const [currencyOpen, setCurrencyOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const currencyRef = useRef(null);
 
   const currencies = ["NGN", "USD", "EUR", "GBP", "GHS"];
+  const rates = getExchangeRates();
 
   useEffect(() => {
     document.title = "SaveMyWay — Account";
@@ -46,6 +55,12 @@ export default function Account() {
     if (window.confirm("Are you sure you want to log out?")) {
       signOut();
     }
+  };
+
+  const handleSyncRates = async () => {
+    setSyncing(true);
+    await refreshRates();
+    setTimeout(() => setSyncing(false), 500);
   };
 
   return (
@@ -148,7 +163,54 @@ export default function Account() {
               )}
             </div>
 
-            <div className="toggle-row">
+            <div
+              style={{
+                marginTop: "1rem",
+                padding: "0.85rem",
+                background: "var(--surface)",
+                borderRadius: "var(--radius-md)",
+                border: "1px solid var(--border-color)",
+                fontSize: "0.85rem",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justify: "space-between",
+                  alignItems: "center",
+                  marginBottom: "0.4rem",
+                }}
+              >
+                <span style={{ fontWeight: 600, color: "var(--text-secondary)" }}>
+                  Live Market Rates (USD base)
+                </span>
+                <button
+                  type="button"
+                  onClick={handleSyncRates}
+                  disabled={syncing}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--money-green)",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.3rem",
+                    fontWeight: 600,
+                    fontSize: "0.8rem",
+                  }}
+                >
+                  <FaSyncAlt className={syncing ? "spin" : ""} />
+                  {syncing ? "Syncing..." : "Sync Rates"}
+                </button>
+              </div>
+              <p style={{ margin: 0, opacity: 0.85, lineHeight: 1.5, fontFamily: "monospace" }}>
+                $1 USD = ₦{rates.NGN?.toFixed(2)} NGN • €{rates.EUR?.toFixed(4)} EUR • £
+                {rates.GBP?.toFixed(4)} GBP • ₵{rates.GHS?.toFixed(2)} GHS
+              </p>
+            </div>
+
+            <div className="toggle-row" style={{ marginTop: "1rem" }}>
               <span>Dark Mode</span>
 
               <label className="custom-toggle">

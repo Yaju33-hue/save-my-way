@@ -123,20 +123,29 @@ const scrollToBottom = () => {
   };
 
   const handleNumberKeyDown = (e) => {
+    const allowedKeys = [
+      "Backspace",
+      "Delete",
+      "Tab",
+      "Escape",
+      "Enter",
+      "ArrowLeft",
+      "ArrowRight",
+      "ArrowUp",
+      "ArrowDown",
+      "Home",
+      "End",
+      ".",
+    ];
+
     if (
-      [46, 8, 9, 27, 13, 110, 190, 173].indexOf(e.keyCode) !== -1 ||
-      (e.keyCode === 65 && e.ctrlKey === true) ||
-      (e.keyCode === 67 && e.ctrlKey === true) ||
-      (e.keyCode === 86 && e.ctrlKey === true) ||
-      (e.keyCode === 88 && e.ctrlKey === true) ||
-      (e.keyCode >= 35 && e.keyCode <= 39)
+      allowedKeys.includes(e.key) ||
+      ((e.ctrlKey || e.metaKey) && ["a", "c", "v", "x"].includes(e.key.toLowerCase()))
     ) {
       return;
     }
-    if (
-      (e.shiftKey || e.keyCode < 48 || e.keyCode > 57) &&
-      (e.keyCode < 96 || e.keyCode > 105)
-    ) {
+
+    if (!/^[0-9]$/.test(e.key)) {
       e.preventDefault();
     }
   };

@@ -1,5 +1,7 @@
 import { store } from "./index.js";
 import { fanout } from "sia-reactor/utils";
+import { fetchLiveExchangeRates } from "../utils/currency.js";
+
 
 const generateId = () =>
   typeof crypto !== "undefined" && crypto.randomUUID
@@ -41,13 +43,21 @@ export const toggleHideBalance = () => {
 
 export const updateCurrency = (newCurrency) => {
   store.ui.currency = newCurrency;
+  refreshRates();
 };
+
+export const refreshRates = async () => {
+  await fetchLiveExchangeRates();
+  store.ui.ratesUpdatedAt = Date.now();
+};
+
 
 // Financial actions
 export const addWalletEntry = (entry) => {
   const newEntry = {
     ...entry,
     id: generateId(),
+    baseCurrency: entry.baseCurrency || store.ui.currency || "NGN",
     createdAt: new Date().toISOString(),
   };
   fanout(store, "data.walletEntries", [...store.data.walletEntries, newEntry]);
@@ -69,6 +79,7 @@ export const addSavingsEntry = (entry) => {
   const newEntry = {
     ...entry,
     id: generateId(),
+    baseCurrency: entry.baseCurrency || store.ui.currency || "NGN",
     createdAt: new Date().toISOString(),
     interestAccrued: 0,
   };
@@ -91,6 +102,7 @@ export const addInvestmentEntry = (entry) => {
   const newEntry = {
     ...entry,
     id: generateId(),
+    baseCurrency: entry.baseCurrency || store.ui.currency || "NGN",
     createdAt: new Date().toISOString(),
   };
   fanout(store, "data.investmentsEntries", [...store.data.investmentsEntries, newEntry]);

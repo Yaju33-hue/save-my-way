@@ -1,4 +1,5 @@
 import { calculateInterest } from "./actions.js";
+import { convertCurrency } from "../utils/currency.js";
 
 const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
 
@@ -64,47 +65,64 @@ export const isPendingRecurringEntry = (entry) => entry.recurring && !isRecurrin
 // Computed values migrated from DataContext
 
 export const selectWalletTotal = (state) => {
+  const targetCurrency = state.ui.currency || "NGN";
   return state.data.walletEntries.reduce((total, entry) => {
     if (!isRecurringEntryActive(entry)) {
       return total;
     }
 
-    const amount = parseFloat(entry.amount) || 0;
+    const rawAmount = parseFloat(entry.amount) || 0;
+    const fromCurrency = entry.baseCurrency || "NGN";
+    const amount = convertCurrency(rawAmount, fromCurrency, targetCurrency);
     return entry.type === "incoming" ? total + amount : total - amount;
   }, 0);
 };
 
 export const selectSavingsTotal = (state) => {
+  const targetCurrency = state.ui.currency || "NGN";
   return state.data.savingsEntries.reduce((total, entry) => {
-    const amount = parseFloat(entry.amount) || 0;
-    const interest = calculateInterest(entry);
+    const rawAmount = parseFloat(entry.amount) || 0;
+    const rawInterest = calculateInterest(entry);
+    const fromCurrency = entry.baseCurrency || "NGN";
+    const amount = convertCurrency(rawAmount, fromCurrency, targetCurrency);
+    const interest = convertCurrency(rawInterest, fromCurrency, targetCurrency);
     return total + amount + interest;
   }, 0);
 };
 
 export const selectTotalInterest = (state) => {
-  return state.data.savingsEntries.reduce(
-    (total, entry) => total + calculateInterest(entry),
-    0
-  );
+  const targetCurrency = state.ui.currency || "NGN";
+  return state.data.savingsEntries.reduce((total, entry) => {
+    const rawInterest = calculateInterest(entry);
+    const fromCurrency = entry.baseCurrency || "NGN";
+    return total + convertCurrency(rawInterest, fromCurrency, targetCurrency);
+  }, 0);
 };
 
 export const selectInvestmentsTotal = (state) => {
+  const targetCurrency = state.ui.currency || "NGN";
   const entries = state.data.investmentsEntries || [];
   return entries.reduce((total, entry) => {
-    const amount = parseFloat(entry.amount) || 0;
+    const shares = parseFloat(entry.amount) || 0;
     const currentPrice = parseFloat(entry.currentPrice) || 0;
-    return total + amount * currentPrice;
+    const rawValue = shares * currentPrice;
+    const fromCurrency = entry.baseCurrency || "NGN";
+    return total + convertCurrency(rawValue, fromCurrency, targetCurrency);
   }, 0);
 };
 
 export const selectInvestmentProfitLoss = (state) => {
+  const targetCurrency = state.ui.currency || "NGN";
   const entries = state.data.investmentsEntries || [];
   return entries.reduce((total, entry) => {
-    const amount = parseFloat(entry.amount) || 0;
+    const shares = parseFloat(entry.amount) || 0;
     const currentPrice = parseFloat(entry.currentPrice) || 0;
-    const amountSpent = parseFloat(entry.amountSpent) || 0;
-    return total + amount * currentPrice - amountSpent;
+    const rawValue = shares * currentPrice;
+    const rawSpent = parseFloat(entry.amountSpent) || 0;
+    const fromCurrency = entry.baseCurrency || "NGN";
+    const convertedValue = convertCurrency(rawValue, fromCurrency, targetCurrency);
+    const convertedSpent = convertCurrency(rawSpent, fromCurrency, targetCurrency);
+    return total + (convertedValue - convertedSpent);
   }, 0);
 };
 
@@ -115,4 +133,4 @@ export const selectFinancialTotals = (state) => ({
   totalInterest: selectTotalInterest(state),
   investmentsTotal: selectInvestmentsTotal(state),
   investmentProfitLoss: selectInvestmentProfitLoss(state),
-});
+});

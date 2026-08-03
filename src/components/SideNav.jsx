@@ -7,7 +7,7 @@ export default function SideNav() {
 
   return (
     <aside className="side-nav">
-      <h2 className="logo"><img style={{ width: "8vw", height: "14vh", borderRadius: "30%" }} src="public\WhatsApp Image 2025-12-06 at 20.53.53_bec4e93d.jpg" alt="SaveMyWay" /></h2>
+      <h2 className="logo"><img style={{ width: "8vw", height: "14vh", borderRadius: "30%" }} src="/WhatsApp Image 2025-12-06 at 20.53.53_bec4e93d.jpg" alt="SaveMyWay" /></h2>
 
       <nav className="side-nav-links">
         <Link className={`nav-item ${isActive("/") ? "active" : ""}`} to="/">

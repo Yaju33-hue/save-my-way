@@ -36,7 +36,9 @@ export default function EntryCard({
   };
 
   const isPending = isPendingRecurringEntry(entry);
-  const formattedAmount = hideBalance ? "••••" : formatCurrency(entry.amount, currency);
+  const formattedAmount = hideBalance
+    ? "••••"
+    : formatCurrency(entry.amount, currency, entry.baseCurrency || "NGN");
 
   return (
     <div className={`card fade-in-up ${showDropdown ? "card--menu-open" : ""}`}>

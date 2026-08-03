@@ -13,6 +13,7 @@ export default function InvestmentCard({ entry, onEdit, onDelete }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const menuRef = useRef(null);
 
+  const fromCurrency = entry.baseCurrency || "NGN";
   const amount = parseFloat(entry.amount) || 0;
   const currentPrice = parseFloat(entry.currentPrice) || 0;
   const amountSpent = parseFloat(entry.amountSpent) || 0;
@@ -52,7 +53,7 @@ export default function InvestmentCard({ entry, onEdit, onDelete }) {
               Shares: {hideBalance ? HIDDEN_VALUE : amount}
             </span>
             <span className="entry-tag">
-              Price: {hideBalance ? HIDDEN_VALUE : formatCurrency(currentPrice, currency)}
+              Price: {hideBalance ? HIDDEN_VALUE : formatCurrency(currentPrice, currency, fromCurrency)}
             </span>
             {entry.symbol && !hideBalance && (
               <span className="entry-tag">
@@ -62,7 +63,7 @@ export default function InvestmentCard({ entry, onEdit, onDelete }) {
           </div>
 
           <p style={{ marginTop: "0.85rem", color: "var(--text-secondary)" }}>
-            Spent: {hideBalance ? HIDDEN_VALUE : formatCurrency(amountSpent, currency)}
+            Spent: {hideBalance ? HIDDEN_VALUE : formatCurrency(amountSpent, currency, fromCurrency)}
           </p>
           <p className="price-updated-label">
             Last updated: {hideBalance ? HIDDEN_VALUE : lastUpdatedLabel}
@@ -79,7 +80,7 @@ export default function InvestmentCard({ entry, onEdit, onDelete }) {
             className="amount"
             style={{ color: isProfit ? "var(--money-green)" : "var(--danger)" }}
           >
-            {hideBalance ? HIDDEN_VALUE : formatCurrency(currentValue, currency)}
+            {hideBalance ? HIDDEN_VALUE : formatCurrency(currentValue, currency, fromCurrency)}
           </div>
 
           <div
@@ -92,7 +93,7 @@ export default function InvestmentCard({ entry, onEdit, onDelete }) {
             {isProfit ? "Gain" : "Loss"}:{" "}
             {hideBalance
               ? HIDDEN_VALUE
-              : `${formatCurrency(Math.abs(profitLoss), currency)} (${Math.abs(
+              : `${formatCurrency(Math.abs(profitLoss), currency, fromCurrency)} (${Math.abs(
                   profitLossPercent,
                 ).toFixed(2)}%)`}
           </div>
