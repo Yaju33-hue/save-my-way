@@ -25,7 +25,7 @@ try {
       liveRates = { ...DEFAULT_EXCHANGE_RATES, ...parsed.rates };
     }
   }
-} catch (e) {
+} catch {
   // Ignore storage error
 }
 
@@ -50,7 +50,9 @@ export async function fetchLiveExchangeRates() {
             JSON.stringify({ rates: newRates, updatedAt: new Date().toISOString() })
           );
         }
-      } catch (e) {}
+      } catch {
+        // Ignore localStorage quota errors
+      }
     }
   } catch (error) {
     console.warn("Could not fetch live exchange rates, using cached/default rates.", error);

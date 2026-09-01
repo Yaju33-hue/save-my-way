@@ -46,7 +46,7 @@ export default function SignUp() {
       };
       signUp(userData);
       navigate("/");
-    } catch (err) {
+    } catch {
       setError("Sign up failed");
     } finally {
       setIsLoading(false);

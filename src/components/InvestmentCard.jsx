@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useReactor } from "sia-reactor/adapters/react";
 import { store } from "../store/index.js";
-import { formatCurrency } from "../utils/currency.js";
+import { formatCurrency, getCurrencySymbol } from "../utils/currency.js";
 import DropdownMenu from "./DropdownMenu.jsx";
 
 const HIDDEN_VALUE = "****";
@@ -13,7 +13,10 @@ export default function InvestmentCard({ entry, onEdit, onDelete }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const menuRef = useRef(null);
 
-  const fromCurrency = entry.baseCurrency || "NGN";
+  const fromCurrency = entry.baseCurrency || (entry.market === "NGX" ? "NGN" : "USD");
+  const isConverted = fromCurrency !== currency;
+  const fromSymbol = getCurrencySymbol(fromCurrency);
+
   const amount = parseFloat(entry.amount) || 0;
   const currentPrice = parseFloat(entry.currentPrice) || 0;
   const amountSpent = parseFloat(entry.amountSpent) || 0;
@@ -53,7 +56,8 @@ export default function InvestmentCard({ entry, onEdit, onDelete }) {
               Shares: {hideBalance ? HIDDEN_VALUE : amount}
             </span>
             <span className="entry-tag">
-              Price: {hideBalance ? HIDDEN_VALUE : formatCurrency(currentPrice, currency, fromCurrency)}
+              Price/Share: {hideBalance ? HIDDEN_VALUE : formatCurrency(currentPrice, currency, fromCurrency)}
+              {isConverted && !hideBalance && ` (${fromSymbol}${currentPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`}
             </span>
             {entry.symbol && !hideBalance && (
               <span className="entry-tag">
@@ -64,6 +68,7 @@ export default function InvestmentCard({ entry, onEdit, onDelete }) {
 
           <p style={{ marginTop: "0.85rem", color: "var(--text-secondary)" }}>
             Spent: {hideBalance ? HIDDEN_VALUE : formatCurrency(amountSpent, currency, fromCurrency)}
+            {isConverted && !hideBalance && ` (${fromSymbol}${amountSpent.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`}
           </p>
           <p className="price-updated-label">
             Last updated: {hideBalance ? HIDDEN_VALUE : lastUpdatedLabel}
@@ -81,6 +86,11 @@ export default function InvestmentCard({ entry, onEdit, onDelete }) {
             style={{ color: isProfit ? "var(--money-green)" : "var(--danger)" }}
           >
             {hideBalance ? HIDDEN_VALUE : formatCurrency(currentValue, currency, fromCurrency)}
+            {isConverted && !hideBalance && (
+              <span style={{ fontSize: "0.82rem", display: "block", color: "var(--text-secondary)", fontWeight: 500 }}>
+                {fromSymbol}{currentValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            )}
           </div>
 
           <div

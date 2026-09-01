@@ -17,7 +17,7 @@ export const signUp = (userData) => {
   store.auth.isAuthenticated = true;
 };
 
-export const signIn = (email, password) => {
+export const signIn = (email) => {
   const currentUser = store.auth.user;
   if (currentUser && currentUser.email === email) {
     store.auth.isAuthenticated = true;
@@ -106,6 +106,20 @@ export const addInvestmentEntry = (entry) => {
     createdAt: new Date().toISOString(),
   };
   fanout(store, "data.investmentsEntries", [...store.data.investmentsEntries, newEntry]);
+};
+
+export const addMultipleInvestmentEntries = (entries) => {
+  if (!Array.isArray(entries) || entries.length === 0) return;
+  const newEntries = entries.map((entry) => ({
+    ...entry,
+    id: generateId(),
+    baseCurrency: entry.baseCurrency || store.ui.currency || "NGN",
+    createdAt: new Date().toISOString(),
+  }));
+  fanout(store, "data.investmentsEntries", [
+    ...store.data.investmentsEntries,
+    ...newEntries,
+  ]);
 };
 
 export const updateInvestmentEntry = (id, updatedEntry) => {

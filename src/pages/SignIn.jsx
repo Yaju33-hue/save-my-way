@@ -26,7 +26,7 @@ export default function SignIn() {
       } else {
         setError("Invalid credentials");
       }
-    } catch (err) {
+    } catch {
       setError("Sign in failed");
     } finally {
       setIsLoading(false);

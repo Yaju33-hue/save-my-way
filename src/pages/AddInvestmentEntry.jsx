@@ -4,7 +4,8 @@ import { useReactor } from "sia-reactor/adapters/react";
 import { store } from "../store/index.js";
 import { addInvestmentEntry, updateInvestmentEntry } from "../store/actions.js";
 import { getStockPrice, searchStock, hasMarketDataKeys } from "../utils/marketData.js";
-import { FaArrowLeft } from "react-icons/fa";
+import PortfolioImportModal from "../components/PortfolioImportModal.jsx";
+import { FaArrowLeft, FaCloudUploadAlt } from "react-icons/fa";
 
 export default function AddInvestmentEntry() {
   const state = useReactor(store);
@@ -27,6 +28,7 @@ export default function AddInvestmentEntry() {
   const [priceLookupStatus, setPriceLookupStatus] = useState("");
   const [priceLookupError, setPriceLookupError] = useState("");
   const [matchedStock, setMatchedStock] = useState(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   useEffect(() => {
     document.title = id ? "SaveMyWay — Edit Investment" : "SaveMyWay — Add Investment";
@@ -247,8 +249,24 @@ export default function AddInvestmentEntry() {
           <button type="submit" className="btn btn-primary form-btn">
             {id ? "Update Investment" : "Add Investment"}
           </button>
+
+          {!id && (
+            <button
+              type="button"
+              className="btn btn-secondary form-btn"
+              style={{ marginTop: "0.75rem" }}
+              onClick={() => setIsImportModalOpen(true)}
+            >
+              <FaCloudUploadAlt /> Import from File (.xlsx, .csv, .pdf)
+            </button>
+          )}
         </form>
       </div>
+
+      <PortfolioImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+      />
     </div>
   );
 }
