@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useReactor } from "sia-reactor/adapters/react";
 import { store } from "../store/index.js";
 import { addInvestmentEntry, updateInvestmentEntry } from "../store/actions.js";
-import { getStockPrice, searchStock, hasMarketDataKeys } from "../utils/marketData.js";
+import { getStockPrice, searchStock } from "../utils/marketData.js";
 import PortfolioImportModal from "../components/PortfolioImportModal.jsx";
 import { FaArrowLeft, FaCloudUploadAlt } from "react-icons/fa";
 
@@ -58,18 +58,11 @@ export default function AddInvestmentEntry() {
 
   useEffect(() => {
     const query = formData.name.trim();
-    const keys = hasMarketDataKeys();
 
     if (query.length < 2) {
       setMatchedStock(null);
       setPriceLookupStatus("");
       setPriceLookupError("");
-      return;
-    }
-
-    if (!keys.finnhub && !keys.ngx) {
-      setPriceLookupStatus("");
-      setPriceLookupError("Add API keys to auto-fill market prices.");
       return;
     }
 
@@ -220,14 +213,14 @@ export default function AddInvestmentEntry() {
               min="0"
               step="0.01"
               inputMode="decimal"
-              className="input floating-input readonly-input"
+              className="input floating-input"
               value={formData.currentPrice}
-              readOnly
+              onChange={(e) => handleChange("currentPrice", sanitizeNumberInput(e.target.value))}
               onKeyDown={handleNumberKeyDown}
               placeholder=" "
               required
             />
-            <label>Current Price per Share (Auto)</label>
+            <label>Current Price per Share</label>
           </div>
 
           <div className="floating-field">

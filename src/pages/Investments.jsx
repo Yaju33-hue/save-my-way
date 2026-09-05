@@ -22,6 +22,7 @@ import {
   FaEyeSlash,
   FaCloudUploadAlt,
   FaFileExcel,
+  FaSyncAlt,
 } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -39,6 +40,7 @@ export default function Investments() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isDraggingOverPage, setIsDraggingOverPage] = useState(false);
   const [droppedFile, setDroppedFile] = useState(null);
+  const [isRefreshingPrices, setIsRefreshingPrices] = useState(false);
 
   const trackedInvestmentsKey = investmentEntries
     .map((entry) => `${entry.id}:${entry.symbol || ""}:${entry.market || ""}`)
@@ -100,42 +102,45 @@ export default function Investments() {
     }
   };
 
-  useEffect(() => {
-    let cancelled = false;
+  const refreshPrices = async (force = false) => {
+    const trackedEntries = investmentEntriesRef.current.filter(
+      (entry) => entry.symbol && entry.market,
+    );
+    if (trackedEntries.length === 0) return;
 
-    const refreshPrices = async () => {
-      const trackedEntries = investmentEntriesRef.current.filter(
-        (entry) => entry.symbol && entry.market,
-      );
+    setIsRefreshingPrices(true);
 
-      for (const entry of trackedEntries) {
-        try {
-          const quote = await getStockPrice(entry.symbol, entry.market);
-          if (cancelled) return;
-
-          updateInvestmentEntry(entry.id, {
-            currentPrice: quote.price,
-            priceUpdatedAt: quote.updatedAt,
-            priceSource: quote.source,
-            priceError: quote.error || "",
-          });
-        } catch (error) {
-          if (cancelled) return;
-          updateInvestmentEntry(entry.id, {
-            priceError: error.message || "Price refresh failed",
-          });
-        }
+    for (const entry of trackedEntries) {
+      try {
+        const quote = await getStockPrice(entry.symbol, entry.market, { force });
+        updateInvestmentEntry(entry.id, {
+          currentPrice: quote.price,
+          priceUpdatedAt: quote.updatedAt,
+          priceSource: quote.source,
+          priceError: quote.error || "",
+        });
+      } catch (error) {
+        updateInvestmentEntry(entry.id, {
+          priceError: error.message || "Price refresh failed",
+        });
       }
-    };
+    }
 
+    setIsRefreshingPrices(false);
+  };
+
+  useEffect(() => {
     refreshPrices();
 
-    const interval = window.setInterval(refreshPrices, 3 * 60 * 1000);
-    const handleFocus = () => refreshPrices();
+    // 60-second auto-refresh interval
+    const interval = window.setInterval(() => {
+      refreshPrices();
+    }, 60 * 1000);
+
+    const handleFocus = () => refreshPrices(true);
     window.addEventListener("focus", handleFocus);
 
     return () => {
-      cancelled = true;
       window.clearInterval(interval);
       window.removeEventListener("focus", handleFocus);
     };
@@ -199,9 +204,25 @@ export default function Investments() {
       </div>
 
       <div className="wallet-header">
-        <h2>Investments</h2>
+        <div>
+          <h2>Investments</h2>
+          <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+            {isRefreshingPrices ? "Updating prices..." : `Auto-refresh active (60s)`}
+          </span>
+        </div>
 
         <div className="header-actions-group">
+          <button
+            type="button"
+            className="small-import-btn"
+            onClick={() => refreshPrices(true)}
+            disabled={isRefreshingPrices}
+            title="Auto-refreshes every 60s. Click to refresh live quotes now."
+          >
+            <FaSyncAlt className={isRefreshingPrices ? "spinning" : ""} />
+            {isRefreshingPrices ? "Updating..." : "Refresh"}
+          </button>
+
           <button
             type="button"
             className="small-import-btn"

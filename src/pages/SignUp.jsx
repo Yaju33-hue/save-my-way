@@ -61,49 +61,15 @@ export default function SignUp() {
   };
 
   return (
-    <div
-      className="container"
-      style={{
-        justifyContent: "center",
-        alignItems: "center",
-        paddingTop: "2rem",
-      }}
-    >
-      <div className="card" style={{ width: "100%", maxWidth: "400px" }}>
-        <div style={{ textAlign: "center", marginBottom: "2rem" }}>
-          <h1
-            style={{
-              fontSize: "2.5rem",
-              fontWeight: "900",
-              background:
-                "linear-gradient(135deg, var(--money-green), var(--money-green-dark))",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              marginBottom: "0.5rem",
-            }}
-          >
-            SAVE-MY-WAY
-          </h1>
-          <p style={{ color: "var(--text-secondary)" }}>
-            Track your expenses, save smarter
-          </p>
+    <div className="auth-page">
+      <div className="card auth-card">
+        <div className="auth-header">
+          <h1 className="auth-logo">SAVE-MY-WAY</h1>
+          <p className="auth-subtitle">Track your expenses, save smarter</p>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          {error && (
-            <div
-              style={{
-                background: "var(--danger-bg)",
-                color: "var(--danger)",
-                padding: "1rem",
-                borderRadius: "12px",
-                marginBottom: "1rem",
-                borderLeft: "4px solid var(--danger)",
-              }}
-            >
-              {error}
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className="auth-form">
+          {error && <div className="auth-error">{error}</div>}
 
           <div className="form-group">
             <label className="label">Full Name</label>
@@ -114,6 +80,7 @@ export default function SignUp() {
               value={formData.name}
               onChange={handleInputChange}
               placeholder="John Doe"
+              autoComplete="name"
               required
             />
           </div>
@@ -128,12 +95,13 @@ export default function SignUp() {
               onChange={handleInputChange}
               placeholder="+234 800 000 0000"
               pattern="[0-9+\s]{10,}"
+              autoComplete="tel"
               required
             />
           </div>
 
           <div className="form-group">
-            <label className="label">Email</label>
+            <label className="label">Email Address</label>
             <input
               type="email"
               name="email"
@@ -141,6 +109,7 @@ export default function SignUp() {
               value={formData.email}
               onChange={handleInputChange}
               placeholder="john@example.com"
+              autoComplete="email"
               required
             />
           </div>
@@ -153,49 +122,31 @@ export default function SignUp() {
               className="input"
               value={formData.password}
               onChange={handleInputChange}
-              placeholder="Create a password"
+              placeholder="Create a password (min. 6 characters)"
               minLength="6"
+              autoComplete="new-password"
               required
             />
           </div>
 
           <button
             type="submit"
-            className="btn btn-primary"
-            style={{ width: "100%", marginTop: "1rem" }}
+            className="btn btn-primary auth-submit-btn"
             disabled={isLoading}
           >
             {isLoading ? "Creating account..." : "Create Account"}
           </button>
         </form>
 
-        <div style={{ textAlign: "center", marginTop: "1.5rem" }}>
-          <a
-            href="/signin"
-            className="signin-link"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              color: "var(--text-secondary)",
-              textDecoration: "none",
-              fontWeight: "600",
-              fontSize: "1rem",
-              padding: "0.75rem 1.5rem",
-              borderRadius: "12px",
-              border: "2px solid transparent",
-              transition: "all 0.3s ease",
-              cursor: "pointer",
-            }}
-            onClick={(e) => {
-              e.preventDefault();
-              navigate("/signin");
-            }}
+        <div className="auth-footer">
+          <button
+            type="button"
+            className="auth-link-btn"
+            onClick={() => navigate("/signin")}
           >
-            <FaArrowLeft
-              style={{ marginRight: "0.5rem", transition: "color 0.3s ease" }}
-            />
+            <FaArrowLeft />
             Already have an account? Sign In
-          </a>
+          </button>
         </div>
       </div>
     </div>

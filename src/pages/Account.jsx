@@ -88,23 +88,17 @@ export default function Account() {
 
         <div className="account-summary-grid">
           <div className="account-summary-box">
-            <p style={{ fontSize: "0.85rem", opacity: 0.9, marginBottom: "0.5rem" }}>
-              Total Wallet
-            </p>
+            <span className="account-box-label">Total Wallet</span>
             <CurrencyFormatter amount={walletTotal} className="summary-amount" />
           </div>
 
           <div className="account-summary-box">
-            <p style={{ fontSize: "0.85rem", opacity: 0.9, marginBottom: "0.5rem" }}>
-              Total Savings
-            </p>
+            <span className="account-box-label">Total Savings</span>
             <CurrencyFormatter amount={savingsTotal} className="summary-amount" />
           </div>
 
           <div className="account-summary-box">
-            <p style={{ fontSize: "0.85rem", opacity: 0.9, marginBottom: "0.5rem" }}>
-              Total Investments
-            </p>
+            <span className="account-box-label">Total Investments</span>
             <CurrencyFormatter amount={investmentsTotal} className="summary-amount" />
           </div>
         </div>
@@ -132,85 +126,59 @@ export default function Account() {
 
         {showSettings && (
           <div className="settings-content">
-            <div className="custom-dropdown" ref={currencyRef}>
-              <button
-                type="button"
-                className={`custom-dropdown-btn ${currencyOpen ? "open" : ""}`}
-                onClick={() => setCurrencyOpen((prev) => !prev)}
-              >
-                <span>{currency}</span>
-                <span className="dropdown-arrow">⌄</span>
-              </button>
-
-              {currencyOpen && (
-                <div className="custom-dropdown-menu">
-                  {currencies.map((curr) => (
-                    <button
-                      key={curr}
-                      type="button"
-                      className={`custom-dropdown-option ${
-                        currency === curr ? "selected" : ""
-                      }`}
-                      onClick={() => {
-                        updateCurrency(curr);
-                        setCurrencyOpen(false);
-                      }}
-                    >
-                      {curr}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div
-              style={{
-                marginTop: "1rem",
-                padding: "0.85rem",
-                background: "var(--surface)",
-                borderRadius: "var(--radius-md)",
-                border: "1px solid var(--border-color)",
-                fontSize: "0.85rem",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justify: "space-between",
-                  alignItems: "center",
-                  marginBottom: "0.4rem",
-                }}
-              >
-                <span style={{ fontWeight: 600, color: "var(--text-secondary)" }}>
-                  Live Market Rates (USD base)
-                </span>
+            <div className="form-group">
+              <label className="settings-field-label">Active Display Currency</label>
+              <div className="custom-dropdown" ref={currencyRef}>
                 <button
                   type="button"
+                  className={`custom-dropdown-btn ${currencyOpen ? "open" : ""}`}
+                  onClick={() => setCurrencyOpen((prev) => !prev)}
+                >
+                  <span>{currency}</span>
+                  <span className="dropdown-arrow">⌄</span>
+                </button>
+
+                {currencyOpen && (
+                  <div className="custom-dropdown-menu">
+                    {currencies.map((curr) => (
+                      <button
+                        key={curr}
+                        type="button"
+                        className={`custom-dropdown-option ${
+                          currency === curr ? "selected" : ""
+                        }`}
+                        onClick={() => {
+                          updateCurrency(curr);
+                          setCurrencyOpen(false);
+                        }}
+                      >
+                        {curr}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="rates-info-card">
+              <div className="rates-header">
+                <span className="rates-title">Live Market Rates (USD Base)</span>
+                <button
+                  type="button"
+                  className="rates-sync-btn"
                   onClick={handleSyncRates}
                   disabled={syncing}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--money-green)",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.3rem",
-                    fontWeight: 600,
-                    fontSize: "0.8rem",
-                  }}
                 >
-                  <FaSyncAlt className={syncing ? "spin" : ""} />
+                  <FaSyncAlt className={syncing ? "spinning" : ""} />
                   {syncing ? "Syncing..." : "Sync Rates"}
                 </button>
               </div>
-              <p style={{ margin: 0, opacity: 0.85, lineHeight: 1.5, fontFamily: "monospace" }}>
-                $1 USD = ₦{rates.NGN?.toFixed(2)} NGN • €{rates.EUR?.toFixed(4)} EUR • £
-                {rates.GBP?.toFixed(4)} GBP • ₵{rates.GHS?.toFixed(2)} GHS
+              <p className="rates-text">
+                $1 USD = ₦{rates.NGN?.toFixed(2)} NGN • €{rates.EUR?.toFixed(4)} EUR • £{rates.GBP?.toFixed(4)} GBP • ₵{rates.GHS?.toFixed(2)} GHS
               </p>
             </div>
 
-            <div className="toggle-row" style={{ marginTop: "1rem" }}>
+            <div className="toggle-row">
               <span>Dark Mode</span>
 
               <label className="custom-toggle">
@@ -223,6 +191,7 @@ export default function Account() {
                 <span className="toggle-slider"></span>
               </label>
             </div>
+
             <div className="toggle-row">
               <span>Hide Balance</span>
 

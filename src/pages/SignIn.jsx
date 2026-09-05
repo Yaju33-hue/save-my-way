@@ -34,56 +34,25 @@ export default function SignIn() {
   };
 
   return (
-    <div
-      className="container"
-      style={{
-        justifyContent: "center",
-        alignItems: "center",
-        paddingTop: "2rem",
-      }}
-    >
-      <div className="card" style={{ width: "100%", maxWidth: "400px" }}>
-        <div style={{ textAlign: "center", marginBottom: "2rem" }}>
-          <h1
-            style={{
-              fontSize: "2.5rem",
-              fontWeight: "900",
-              background:
-                "linear-gradient(135deg, var(--money-green), var(--money-green-dark))",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              marginBottom: "0.5rem",
-            }}
-          >
-            SAVE-MY-WAY
-          </h1>
-          <p style={{ color: "var(--text-secondary)" }}>Welcome back</p>
+    <div className="auth-page">
+      <div className="card auth-card">
+        <div className="auth-header">
+          <h1 className="auth-logo">SAVE-MY-WAY</h1>
+          <p className="auth-subtitle">Welcome back! Sign in to continue</p>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          {error && (
-            <div
-              style={{
-                background: "var(--danger-bg)",
-                color: "var(--danger)",
-                padding: "1rem",
-                borderRadius: "12px",
-                marginBottom: "1rem",
-                borderLeft: "4px solid var(--danger)",
-              }}
-            >
-              {error}
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className="auth-form">
+          {error && <div className="auth-error">{error}</div>}
 
           <div className="form-group">
-            <label className="label">Email</label>
+            <label className="label">Email Address</label>
             <input
               type="email"
               className="input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
+              autoComplete="email"
               required
             />
           </div>
@@ -96,47 +65,29 @@ export default function SignIn() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
+              autoComplete="current-password"
               required
             />
           </div>
 
           <button
             type="submit"
-            className="btn btn-primary"
-            style={{ width: "100%", marginTop: "1rem" }}
+            className="btn btn-primary auth-submit-btn"
             disabled={isLoading}
           >
             {isLoading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
-        <div style={{ textAlign: "center", marginTop: "1.5rem" }}>
-          <a
-            href="/signup"
-            className="signup-link"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              color: "var(--text-secondary)",
-              textDecoration: "none",
-              fontWeight: "600",
-              fontSize: "1rem",
-              padding: "0.75rem 1.5rem",
-              borderRadius: "12px",
-              border: "2px solid transparent",
-              transition: "all 0.3s ease",
-              cursor: "pointer",
-            }}
-            onClick={(e) => {
-              e.preventDefault();
-              navigate("/signup");
-            }}
+        <div className="auth-footer">
+          <button
+            type="button"
+            className="auth-link-btn"
+            onClick={() => navigate("/signup")}
           >
-            <FaArrowLeft
-              style={{ marginRight: "0.5rem", transition: "color 0.3s ease" }}
-            />
+            <FaArrowLeft />
             Need an account? Sign Up
-          </a>
+          </button>
         </div>
       </div>
     </div>

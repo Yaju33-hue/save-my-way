@@ -71,11 +71,14 @@ export default function Home() {
           tabIndex={0}
           onKeyDown={(e) => e.key === "Enter" && navigate("/wallet")}
         >
-          <div className="summary-icon wallet-summary-icon">
-            <FaWallet />
+          <div className="summary-card-header">
+            <div className="summary-icon wallet-summary-icon">
+              <FaWallet />
+            </div>
+            <span className="summary-card-tag">Cash Flow</span>
           </div>
 
-          <p>Wallet</p>
+          <p className="summary-title">Wallet</p>
           <CurrencyFormatter
             amount={hideBalance ? 0 : walletTotal}
             className="summary-amount"
@@ -89,11 +92,14 @@ export default function Home() {
           tabIndex={0}
           onKeyDown={(e) => e.key === "Enter" && navigate("/savings")}
         >
-          <div className="summary-icon savings-summary-icon">
-            <FaPiggyBank />
+          <div className="summary-card-header">
+            <div className="summary-icon savings-summary-icon">
+              <FaPiggyBank />
+            </div>
+            <span className="summary-card-tag">Yield</span>
           </div>
 
-          <p>Savings</p>
+          <p className="summary-title">Savings</p>
           <CurrencyFormatter
             amount={hideBalance ? 0 : savingsTotal}
             className="summary-amount"
@@ -107,33 +113,33 @@ export default function Home() {
           tabIndex={0}
           onKeyDown={(e) => e.key === "Enter" && navigate("/investments")}
         >
-          <div className="summary-icon investments-summary-icon">
-            <FaUniversity />
+          <div className="summary-card-header">
+            <div className="summary-icon investments-summary-icon">
+              <FaUniversity />
+            </div>
+            {!hideBalance && state.data.investmentsEntries && state.data.investmentsEntries.length > 0 && (
+              <span
+                className={`summary-badge ${
+                  totalInvestmentProfitLoss >= 0 ? "badge-profit" : "badge-loss"
+                }`}
+              >
+                {totalInvestmentProfitLoss >= 0 ? "Gain" : "Loss"}
+              </span>
+            )}
           </div>
 
-          <p>Investments</p>
+          <p className="summary-title">Investments</p>
           <CurrencyFormatter
             amount={hideBalance ? 0 : investmentsTotal}
             className="summary-amount"
           />
-          {!hideBalance && state.data.investmentsEntries && state.data.investmentsEntries.length > 0 && (
-            <p
-              style={{
-                color: totalInvestmentProfitLoss >= 0 ? "var(--money-green)" : "var(--danger)",
-                marginTop: "0.5rem",
-                fontWeight: 700,
-              }}
-            >
-              {totalInvestmentProfitLoss >= 0 ? "Profit" : "Loss"}
-            </p>
-          )}
         </div>
       </div>
 
       {totalInterest > 0 && (
         <div className="interest-summary-card">
-          <div>
-            <p>Total Interest Accrued</p>
+          <div className="interest-summary-content">
+            <span className="interest-summary-title">Total Interest Accrued</span>
             <CurrencyFormatter
               amount={hideBalance ? 0 : totalInterest}
               className="interest-summary-amount"
