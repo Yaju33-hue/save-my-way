@@ -38,16 +38,15 @@ export default function SignUp() {
 
     try {
       const userData = {
-        id: Date.now().toString(),
         name,
         phone,
         email,
-        createdAt: new Date().toISOString(),
+        password,
       };
       signUp(userData);
-      navigate("/");
+      navigate("/", { replace: true });
     } catch {
-      setError("Sign up failed");
+      setError("Sign up failed. Please try again.");
     } finally {
       setIsLoading(false);
     }

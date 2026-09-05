@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { signIn } from "../store/actions.js";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FaArrowLeft } from "react-icons/fa";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -22,12 +21,12 @@ export default function SignIn() {
     try {
       const success = signIn(email, password);
       if (success) {
-        navigate(location.state?.from?.pathname || "/");
+        navigate(location.state?.from?.pathname || "/", { replace: true });
       } else {
-        setError("Invalid credentials");
+        setError("Invalid email or password. Don't have an account? Sign up below.");
       }
     } catch {
-      setError("Sign in failed");
+      setError("Sign in failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -85,8 +84,7 @@ export default function SignIn() {
             className="auth-link-btn"
             onClick={() => navigate("/signup")}
           >
-            <FaArrowLeft />
-            Need an account? Sign Up
+            Don&apos;t have an account? Sign Up &rarr;
           </button>
         </div>
       </div>

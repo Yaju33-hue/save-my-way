@@ -17,7 +17,7 @@ import {
   downloadSampleTemplate,
 } from "../utils/portfolioParser.js";
 import { addMultipleInvestmentEntries } from "../store/actions.js";
-import { formatCurrency } from "../utils/currency.js";
+import { formatCurrency, convertCurrency } from "../utils/currency.js";
 import { useReactor } from "sia-reactor/adapters/react";
 import { store } from "../store/index.js";
 
@@ -219,12 +219,23 @@ export default function PortfolioImportModal({ isOpen, onClose, initialFile = nu
   if (!isOpen) return null;
 
   const selectedCount = parsedEntries.filter((e) => e.selected).length;
+  const detectedRate = parsedEntries.find((e) => e.detectedExchangeRate)?.detectedExchangeRate;
+
   const totalCost = parsedEntries
     .filter((e) => e.selected)
-    .reduce((sum, e) => sum + (parseFloat(e.amountSpent) || 0), 0);
+    .reduce((sum, e) => {
+      const spent = parseFloat(e.amountSpent) || 0;
+      const fromCurr = e.baseCurrency || (e.market === "NGX" ? "NGN" : "USD");
+      return sum + convertCurrency(spent, fromCurr, currentCurrency);
+    }, 0);
+
   const totalValue = parsedEntries
     .filter((e) => e.selected)
-    .reduce((sum, e) => sum + ((parseFloat(e.amount) || 0) * (parseFloat(e.currentPrice) || 0)), 0);
+    .reduce((sum, e) => {
+      const val = (parseFloat(e.amount) || 0) * (parseFloat(e.currentPrice) || 0);
+      const fromCurr = e.baseCurrency || (e.market === "NGX" ? "NGN" : "USD");
+      return sum + convertCurrency(val, fromCurr, currentCurrency);
+    }, 0);
 
   return (
     <div className="portfolio-modal-overlay" onClick={onClose}>
@@ -541,6 +552,14 @@ export default function PortfolioImportModal({ isOpen, onClose, initialFile = nu
                   <span className="stat-label">Selected:</span>
                   <span className="stat-val">{selectedCount} of {parsedEntries.length} Stocks</span>
                 </div>
+                {detectedRate && (
+                  <div className="summary-stat">
+                    <span className="stat-label">Broker USD Rate:</span>
+                    <span className="stat-val" style={{ color: "var(--accent-blue)" }}>
+                      ₦{detectedRate.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                )}
                 <div className="summary-stat">
                   <span className="stat-label">Total Cost Basis:</span>
                   <span className="stat-val">

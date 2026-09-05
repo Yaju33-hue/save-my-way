@@ -11,18 +11,105 @@ const generateId = () =>
 // Actions for the centralized reactor store
 // Migrated from AuthContext, ThemeContext, and DataContext
 
-// Auth actions
-export const signUp = (userData) => {
-  store.auth.user = userData;
-  store.auth.isAuthenticated = true;
+// User accounts persistence key
+const USERS_STORAGE_KEY = "save_my_way_registered_users";
+
+export const getRegisteredUsers = () => {
+  try {
+    const raw = typeof localStorage !== "undefined" ? localStorage.getItem(USERS_STORAGE_KEY) : null;
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
 };
 
-export const signIn = (email) => {
-  const currentUser = store.auth.user;
-  if (currentUser && currentUser.email === email) {
+export const saveRegisteredUsers = (users) => {
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+    }
+  } catch {
+    // Ignore storage quota errors
+  }
+};
+
+// Auth actions
+export const signUp = (userData) => {
+  const users = getRegisteredUsers();
+  const normalizedEmail = String(userData.email || "").trim().toLowerCase();
+
+  const newUserRecord = {
+    id: userData.id || generateId(),
+    name: String(userData.name || "").trim(),
+    phone: String(userData.phone || "").trim(),
+    email: normalizedEmail,
+    password: String(userData.password || "").trim(),
+    createdAt: userData.createdAt || new Date().toISOString(),
+  };
+
+  const existingIndex = users.findIndex(
+    (u) => String(u.email || "").trim().toLowerCase() === normalizedEmail
+  );
+
+  if (existingIndex >= 0) {
+    users[existingIndex] = newUserRecord;
+  } else {
+    users.push(newUserRecord);
+  }
+
+  saveRegisteredUsers(users);
+
+  // Active session profile
+  const profile = {
+    id: newUserRecord.id,
+    name: newUserRecord.name,
+    phone: newUserRecord.phone,
+    email: newUserRecord.email,
+    createdAt: newUserRecord.createdAt,
+  };
+
+  store.auth.user = profile;
+  store.auth.isAuthenticated = true;
+  return profile;
+};
+
+export const signIn = (email, password) => {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const rawPassword = String(password || "").trim();
+  const users = getRegisteredUsers();
+
+  let matchedUser = users.find(
+    (u) => String(u.email || "").trim().toLowerCase() === normalizedEmail
+  );
+
+  // Check store.auth.user as fallback
+  if (
+    !matchedUser &&
+    store.auth?.user &&
+    String(store.auth.user.email || "").trim().toLowerCase() === normalizedEmail
+  ) {
+    matchedUser = store.auth.user;
+  }
+
+  if (matchedUser) {
+    // Verify password if password is set on the account
+    if (matchedUser.password && matchedUser.password !== rawPassword) {
+      return false;
+    }
+
+    const profile = {
+      id: matchedUser.id || generateId(),
+      name: matchedUser.name || "User",
+      phone: matchedUser.phone || "",
+      email: matchedUser.email,
+      createdAt: matchedUser.createdAt || new Date().toISOString(),
+    };
+
+    store.auth.user = profile;
     store.auth.isAuthenticated = true;
     return true;
   }
+
   return false;
 };
 

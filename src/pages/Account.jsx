@@ -8,14 +8,11 @@ import {
   toggleHideBalance,
   refreshRates,
 } from "../store/actions.js";
-import {
-  selectWalletTotal,
-  selectSavingsTotal,
-  selectInvestmentsTotal,
-} from "../store/selectors.js";
+import { selectWalletTotal, selectSavingsTotal, selectInvestmentsTotal } from "../store/selectors.js";
 import { getExchangeRates } from "../utils/currency.js";
 import CurrencyFormatter from "../components/CurrencyFormatter.jsx";
 import { FaSignOutAlt, FaCog, FaSyncAlt } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 export default function Account() {
   const state = useReactor(store);
@@ -23,6 +20,7 @@ export default function Account() {
   const theme = state.ui.theme;
   const currency = state.ui.currency;
   const hideBalance = state.ui.hideBalance;
+  const navigate = useNavigate();
   const walletTotal = useSelector(store, selectWalletTotal);
   const savingsTotal = useSelector(store, selectSavingsTotal);
   const investmentsTotal = useSelector(store, selectInvestmentsTotal);
@@ -54,6 +52,7 @@ export default function Account() {
   const handleLogout = () => {
     if (window.confirm("Are you sure you want to log out?")) {
       signOut();
+      navigate("/signin", { replace: true });
     }
   };
 
@@ -68,10 +67,24 @@ export default function Account() {
       <div className="card account-card">
         <h2 className="section-title">Profile</h2>
 
+        {user?.name && (
+          <div className="account-info-row">
+            <span>Name</span>
+            <strong>{user.name}</strong>
+          </div>
+        )}
+
         <div className="account-info-row">
           <span>Email</span>
-          <strong>{user?.email}</strong>
+          <strong>{user?.email || "Not signed in"}</strong>
         </div>
+
+        {user?.phone && (
+          <div className="account-info-row">
+            <span>Phone</span>
+            <strong>{user.phone}</strong>
+          </div>
+        )}
 
         <div className="account-info-row">
           <span>Member since</span>

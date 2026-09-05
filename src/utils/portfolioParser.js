@@ -1,6 +1,7 @@
 import * as XLSX from "xlsx";
 import * as pdfjsLib from "pdfjs-dist";
 import { detectMarket, searchStock, getStockPrice } from "./marketData.js";
+import { setCustomExchangeRate } from "./currency.js";
 
 // Configure PDF.js worker
 if (typeof window !== "undefined") {
@@ -321,6 +322,7 @@ const parseRowsArray = (rows, defaultMarket = "") => {
 
     const rawShares = currentHeader.shares !== undefined ? row[currentHeader.shares] : "";
     const rawPrice = currentHeader.currentPrice !== undefined ? row[currentHeader.currentPrice] : "";
+    const rawCurrentVal = currentHeader.currentValue !== undefined ? row[currentHeader.currentValue] : "";
     const rawBuyPrice = currentHeader.buyPrice !== undefined ? row[currentHeader.buyPrice] : "";
     const rawSpent = currentHeader.amountSpent !== undefined ? row[currentHeader.amountSpent] : "";
     const rawMarket =
@@ -330,12 +332,18 @@ const parseRowsArray = (rows, defaultMarket = "") => {
 
     const shares = cleanNumber(rawShares);
     let currentPrice = cleanNumber(rawPrice);
+    const currentValue = cleanNumber(rawCurrentVal);
     let buyPrice = cleanNumber(rawBuyPrice);
     let amountSpent = cleanNumber(rawSpent);
 
     // Skip if row has no numeric metrics
-    if (shares <= 0 && amountSpent <= 0 && currentPrice <= 0) {
+    if (shares <= 0 && amountSpent <= 0 && currentPrice <= 0 && currentValue <= 0) {
       continue;
+    }
+
+    // Auto-compute currentPrice from currentValue if currentPrice is not explicitly provided
+    if ((!currentPrice || currentPrice <= 0) && currentValue > 0 && shares > 0) {
+      currentPrice = currentValue / shares;
     }
 
     // Auto-compute missing values
@@ -399,6 +407,48 @@ const parseRowsArray = (rows, defaultMarket = "") => {
 };
 
 /**
+ * Scans a 2D array of rows for broker or dollar exchange rates (e.g. "DOLLAR RATE BAMBOO 1,384.00")
+ */
+export const detectExchangeRateInRows = (rows) => {
+  if (!rows || !Array.isArray(rows)) return null;
+
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r];
+    if (!Array.isArray(row)) continue;
+
+    for (let c = 0; c < row.length; c++) {
+      const cellStr = String(row[c] || "").toLowerCase().trim();
+      if (
+        cellStr.includes("dollar rate") ||
+        cellStr.includes("rate bamboo") ||
+        cellStr.includes("bamboo rate") ||
+        cellStr.includes("exchange rate") ||
+        cellStr.includes("usd rate") ||
+        cellStr.includes("usd/ngn") ||
+        cellStr.includes("usd to ngn")
+      ) {
+        // Look in subsequent columns of the same row
+        for (let nextCol = c + 1; nextCol < Math.min(row.length, c + 5); nextCol++) {
+          const val = cleanNumber(row[nextCol]);
+          if (val >= 400 && val <= 10000) {
+            return val;
+          }
+        }
+        // Look in the row directly below
+        if (r + 1 < rows.length && Array.isArray(rows[r + 1])) {
+          const valBelow = cleanNumber(rows[r + 1][c]);
+          if (valBelow >= 400 && valBelow <= 10000) {
+            return valBelow;
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+};
+
+/**
  * Parses Excel (.xlsx, .xls) and CSV (.csv) files, scanning all worksheets
  */
 export const parseSpreadsheetFile = async (file) => {
@@ -410,6 +460,7 @@ export const parseSpreadsheetFile = async (file) => {
   }
 
   const allResults = [];
+  let detectedExchangeRate = null;
 
   for (const sheetName of workbook.SheetNames) {
     const worksheet = workbook.Sheets[sheetName];
@@ -417,6 +468,14 @@ export const parseSpreadsheetFile = async (file) => {
 
     const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
     if (!rows || rows.length === 0) continue;
+
+    if (!detectedExchangeRate) {
+      const rateFound = detectExchangeRateInRows(rows);
+      if (rateFound) {
+        detectedExchangeRate = rateFound;
+        setCustomExchangeRate("NGN", rateFound);
+      }
+    }
 
     let defaultMarket = "";
     const normSheet = normalizeHeader(sheetName);
@@ -434,6 +493,12 @@ export const parseSpreadsheetFile = async (file) => {
     throw new Error(
       "Could not find any valid stock entries in the spreadsheet. Please check the file headers."
     );
+  }
+
+  if (detectedExchangeRate) {
+    allResults.forEach((entry) => {
+      entry.detectedExchangeRate = detectedExchangeRate;
+    });
   }
 
   return allResults;
@@ -612,6 +677,9 @@ export const enrichPortfolioPrices = async (entries, onProgress) => {
 
       if (matched && matched.symbol) {
         const quote = await getStockPrice(matched.symbol, matched.market, { force: true });
+        if (quote.source === "reference-index" && entry.currentPrice && Number(entry.currentPrice) > 0) {
+          continue;
+        }
         updatedEntries[i] = {
           ...entry,
           symbol: matched.symbol,

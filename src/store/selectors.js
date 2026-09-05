@@ -106,8 +106,20 @@ export const selectInvestmentsTotal = (state) => {
     const shares = parseFloat(entry.amount) || 0;
     const currentPrice = parseFloat(entry.currentPrice) || 0;
     const rawValue = shares * currentPrice;
-    const fromCurrency = entry.baseCurrency || "NGN";
+    const fromCurrency =
+      entry.baseCurrency || (entry.market === "NGX" ? "NGN" : "USD");
     return total + convertCurrency(rawValue, fromCurrency, targetCurrency);
+  }, 0);
+};
+
+export const selectInvestmentsTotalCost = (state) => {
+  const targetCurrency = state.ui.currency || "NGN";
+  const entries = state.data.investmentsEntries || [];
+  return entries.reduce((total, entry) => {
+    const rawSpent = parseFloat(entry.amountSpent) || 0;
+    const fromCurrency =
+      entry.baseCurrency || (entry.market === "NGX" ? "NGN" : "USD");
+    return total + convertCurrency(rawSpent, fromCurrency, targetCurrency);
   }, 0);
 };
 
@@ -119,7 +131,8 @@ export const selectInvestmentProfitLoss = (state) => {
     const currentPrice = parseFloat(entry.currentPrice) || 0;
     const rawValue = shares * currentPrice;
     const rawSpent = parseFloat(entry.amountSpent) || 0;
-    const fromCurrency = entry.baseCurrency || "NGN";
+    const fromCurrency =
+      entry.baseCurrency || (entry.market === "NGX" ? "NGN" : "USD");
     const convertedValue = convertCurrency(rawValue, fromCurrency, targetCurrency);
     const convertedSpent = convertCurrency(rawSpent, fromCurrency, targetCurrency);
     return total + (convertedValue - convertedSpent);
@@ -132,5 +145,6 @@ export const selectFinancialTotals = (state) => ({
   savingsTotal: selectSavingsTotal(state),
   totalInterest: selectTotalInterest(state),
   investmentsTotal: selectInvestmentsTotal(state),
+  investmentsTotalCost: selectInvestmentsTotalCost(state),
   investmentProfitLoss: selectInvestmentProfitLoss(state),
 });

@@ -7,9 +7,10 @@ export const CURRENCY_SYMBOLS = {
 };
 
 // Default fallback exchange rates relative to USD base (1 USD)
+// Set to ₦1,384.00 matching Bamboo / Nigerian broker standard rate
 export const DEFAULT_EXCHANGE_RATES = {
   USD: 1,
-  NGN: 1361.41,
+  NGN: 1384.0,
   EUR: 0.8667,
   GBP: 0.7417,
   GHS: 11.686,
@@ -18,7 +19,10 @@ export const DEFAULT_EXCHANGE_RATES = {
 let liveRates = { ...DEFAULT_EXCHANGE_RATES };
 
 try {
-  const cached = typeof localStorage !== "undefined" ? localStorage.getItem("save_my_way_live_rates") : null;
+  const cached =
+    typeof localStorage !== "undefined"
+      ? localStorage.getItem("save_my_way_live_rates")
+      : null;
   if (cached) {
     const parsed = JSON.parse(cached);
     if (parsed && parsed.rates) {
@@ -29,15 +33,45 @@ try {
   // Ignore storage error
 }
 
+export function setCustomExchangeRate(currency, rate) {
+  const num = parseFloat(rate);
+  if (Number.isFinite(num) && num > 0) {
+    liveRates[currency] = num;
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem(
+          "save_my_way_live_rates",
+          JSON.stringify({ rates: liveRates, updatedAt: new Date().toISOString(), isCustom: true })
+        );
+      }
+    } catch {
+      // Ignore storage error
+    }
+  }
+  return liveRates;
+}
+
 export async function fetchLiveExchangeRates() {
   try {
+    // Check if user locked in a custom/broker rate
+    const cached =
+      typeof localStorage !== "undefined"
+        ? localStorage.getItem("save_my_way_live_rates")
+        : null;
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed?.isCustom) {
+        return liveRates;
+      }
+    }
+
     const response = await fetch("https://open.er-api.com/v6/latest/USD");
     if (!response.ok) return liveRates;
     const data = await response.json();
     if (data && data.result === "success" && data.rates) {
       const newRates = {
         USD: Number(data.rates.USD) || 1,
-        NGN: Number(data.rates.NGN) || liveRates.NGN,
+        NGN: liveRates.NGN || Number(data.rates.NGN) || 1384.0,
         EUR: Number(data.rates.EUR) || liveRates.EUR,
         GBP: Number(data.rates.GBP) || liveRates.GBP,
         GHS: Number(data.rates.GHS) || liveRates.GHS,

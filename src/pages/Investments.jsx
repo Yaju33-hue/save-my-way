@@ -8,6 +8,7 @@ import {
 } from "../store/actions.js";
 import {
   selectInvestmentsTotal,
+  selectInvestmentsTotalCost,
   selectInvestmentProfitLoss,
 } from "../store/selectors.js";
 import { confirmDeleteAction } from "../utils/confirmDialog.js";
@@ -33,6 +34,7 @@ export default function Investments() {
     [state.data.investmentsEntries]
   );
   const investmentsTotal = useSelector(store, selectInvestmentsTotal);
+  const investmentsTotalCost = useSelector(store, selectInvestmentsTotalCost);
   const totalProfitLoss = useSelector(store, selectInvestmentProfitLoss);
   const hideBalance = state.ui.hideBalance;
   const navigate = useNavigate();
@@ -111,8 +113,24 @@ export default function Investments() {
     setIsRefreshingPrices(true);
 
     for (const entry of trackedEntries) {
+      // If entry came from an imported file and this is just an auto/mount refresh,
+      // preserve the user's exact spreadsheet prices unless they clicked "Refresh" explicitly
+      if (!force && (entry.priceSource === "file" || entry.priceSource === "import")) {
+        continue;
+      }
+
       try {
         const quote = await getStockPrice(entry.symbol, entry.market, { force });
+
+        // Never overwrite a valid existing price with a static reference index fallback
+        if (
+          quote.source === "reference-index" &&
+          entry.currentPrice &&
+          Number(entry.currentPrice) > 0
+        ) {
+          continue;
+        }
+
         updateInvestmentEntry(entry.id, {
           currentPrice: quote.price,
           priceUpdatedAt: quote.updatedAt,
@@ -194,12 +212,22 @@ export default function Investments() {
           </button>
         </div>
 
-        <div className="interest-box">
-          <span>{isProfit ? "Total Profit" : "Total Loss"}</span>
-          <CurrencyFormatter
-            amount={hideBalance ? 0 : totalProfitLoss}
-            className={`interest-amount ${isProfit ? "profit-text" : "loss-text"}`}
-          />
+        <div className="investment-metrics-row">
+          <div className="interest-box">
+            <span>Total Invested</span>
+            <CurrencyFormatter
+              amount={hideBalance ? 0 : investmentsTotalCost}
+              className="interest-amount"
+            />
+          </div>
+
+          <div className="interest-box">
+            <span>{isProfit ? "Total Profit" : "Total Loss"}</span>
+            <CurrencyFormatter
+              amount={hideBalance ? 0 : totalProfitLoss}
+              className={`interest-amount ${isProfit ? "profit-text" : "loss-text"}`}
+            />
+          </div>
         </div>
       </div>
 

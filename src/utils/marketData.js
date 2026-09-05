@@ -366,15 +366,15 @@ const getUsStockPrice = async (symbol, { allowStale = true, force = false } = {}
 };
 
 const DEFAULT_NGX_PRICES = {
-  ACCESSCORP: 32.50,
-  MTNN: 780.00,
+  ACCESSCORP: 30.00,
+  MTNN: 813.00,
   DANGCEM: 1034.00,
-  DANGSUGAR: 68.00,
-  GTCO: 54.50,
-  SEPLAT: 4800.00,
-  ZENITHBANK: 43.00,
+  DANGSUGAR: 72.00,
+  GTCO: 132.69,
+  SEPLAT: 13552.60,
+  ZENITHBANK: 128.60,
   FBNH: 31.50,
-  UBA: 31.00,
+  UBA: 45.85,
   AIRTELAFRI: 2150.00,
   BUAFOODS: 379.00,
   BUACEMENT: 143.00,
