@@ -18,9 +18,10 @@ export default function SignUp() {
     document.title = "SaveMyWay — Sign Up";
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setError("");
 
     const { name, phone, email, password } = formData;
 
@@ -37,13 +38,18 @@ export default function SignUp() {
     }
 
     try {
-      const userData = {
+      const result = await signUp({
         name,
         phone,
         email,
         password,
-      };
-      signUp(userData);
+      });
+
+      if (!result.ok) {
+        setError(result.error || "Sign up failed. Please try again.");
+        return;
+      }
+
       navigate("/", { replace: true });
     } catch {
       setError("Sign up failed. Please try again.");

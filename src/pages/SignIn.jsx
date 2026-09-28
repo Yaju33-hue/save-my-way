@@ -17,14 +17,15 @@ export default function SignIn() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setError("");
 
     try {
-      const success = signIn(email, password);
-      if (success) {
+      const result = await signIn(email, password);
+      if (result.ok) {
         navigate(location.state?.from?.pathname || "/", { replace: true });
-      } else {
-        setError("Invalid email or password. Don't have an account? Sign up below.");
+        return;
       }
+      setError(result.error || "Invalid email or password.");
     } catch {
       setError("Sign in failed. Please try again.");
     } finally {

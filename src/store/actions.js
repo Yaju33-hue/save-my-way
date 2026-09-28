@@ -2,134 +2,384 @@ import { store } from "./index.js";
 import { fanout } from "sia-reactor/utils";
 import { fetchLiveExchangeRates } from "../utils/currency.js";
 
+const STORAGE_KEYS = {
+  users: "save_my_way_registered_users",
+  sessions: "save_my_way_sessions",
+  userData: "save_my_way_user_data",
+  activeSession: "save_my_way_active_session",
+};
+
+const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
 
 const generateId = () =>
   typeof crypto !== "undefined" && crypto.randomUUID
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-// Actions for the centralized reactor store
-// Migrated from AuthContext, ThemeContext, and DataContext
+const getStorage = () =>
+  typeof localStorage !== "undefined" ? localStorage : null;
 
-// User accounts persistence key
-const USERS_STORAGE_KEY = "save_my_way_registered_users";
-
-export const getRegisteredUsers = () => {
+const readJson = (key, fallback) => {
   try {
-    const raw = typeof localStorage !== "undefined" ? localStorage.getItem(USERS_STORAGE_KEY) : null;
-    return raw ? JSON.parse(raw) : [];
+    const value = getStorage()?.getItem(key);
+    return value ? JSON.parse(value) : fallback;
   } catch {
-    return [];
+    return fallback;
   }
 };
 
-export const saveRegisteredUsers = (users) => {
+const writeJson = (key, value) => {
   try {
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-    }
+    getStorage()?.setItem(key, JSON.stringify(value));
   } catch {
-    // Ignore storage quota errors
+    // Ignore storage quota errors.
   }
 };
 
-// Auth actions
-export const signUp = (userData) => {
-  const users = getRegisteredUsers();
-  const normalizedEmail = String(userData.email || "").trim().toLowerCase();
+const normalizeEmail = (value) => String(value ?? "").trim().toLowerCase();
 
-  const newUserRecord = {
-    id: userData.id || generateId(),
-    name: String(userData.name || "").trim(),
-    phone: String(userData.phone || "").trim(),
-    email: normalizedEmail,
-    password: String(userData.password || "").trim(),
-    createdAt: userData.createdAt || new Date().toISOString(),
+const serializePassword = async (value) => {
+  const raw = String(value ?? "");
+
+  if (typeof crypto !== "undefined" && crypto.subtle && crypto.subtle.digest) {
+    const bytes = new TextEncoder().encode(raw);
+    const hash = await crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(hash))
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
+  }
+
+  return raw;
+};
+
+const getRegisteredUsers = () => readJson(STORAGE_KEYS.users, []);
+const saveRegisteredUsers = (users) => writeJson(STORAGE_KEYS.users, users);
+const getSessions = () => readJson(STORAGE_KEYS.sessions, []);
+const saveSessions = (sessions) => writeJson(STORAGE_KEYS.sessions, sessions);
+const getUserDataStore = () => readJson(STORAGE_KEYS.userData, {});
+const saveUserDataStore = (data) => writeJson(STORAGE_KEYS.userData, data);
+
+const getActiveSessionToken = () => getStorage()?.getItem(STORAGE_KEYS.activeSession) || null;
+const setActiveSessionToken = (token) => {
+  const storage = getStorage();
+  if (!storage) return;
+  if (token) storage.setItem(STORAGE_KEYS.activeSession, token);
+  else storage.removeItem(STORAGE_KEYS.activeSession);
+};
+
+const createSessionRecord = (userId) => {
+  const now = Date.now();
+  const session = {
+    id: generateId(),
+    token: generateId(),
+    userId,
+    createdAt: new Date(now).toISOString(),
+    expiresAt: new Date(now + SESSION_TTL_MS).toISOString(),
   };
 
-  const existingIndex = users.findIndex(
-    (u) => String(u.email || "").trim().toLowerCase() === normalizedEmail
-  );
+  const sessions = getSessions();
+  sessions.push(session);
+  saveSessions(sessions);
+  setActiveSessionToken(session.token);
+  return session;
+};
 
-  if (existingIndex >= 0) {
-    users[existingIndex] = newUserRecord;
-  } else {
-    users.push(newUserRecord);
+const clearInvalidSession = () => {
+  const activeToken = getActiveSessionToken();
+  if (!activeToken) return;
+
+  const sessions = getSessions().filter((session) => session.token !== activeToken);
+  saveSessions(sessions);
+  setActiveSessionToken(null);
+};
+
+const createDefaultUserData = (userId) => ({
+  id: userId,
+  walletEntries: [],
+  savingsEntries: [],
+  investmentsEntries: [],
+  settings: {
+    theme: "light",
+    hideBalance: false,
+    currency: "NGN",
+  },
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+});
+
+export const getUserDataById = (userId) => {
+  if (!userId) return createDefaultUserData();
+
+  const userDataStore = getUserDataStore();
+  const existing = userDataStore[userId] || createDefaultUserData(userId);
+
+  return {
+    ...createDefaultUserData(userId),
+    ...existing,
+    settings: {
+      ...createDefaultUserData(userId).settings,
+      ...(existing.settings || {}),
+    },
+  };
+};
+
+const persistUserData = () => {
+  const userId = store.auth?.user?.id;
+  if (!userId) return;
+
+  const userDataStore = getUserDataStore();
+  userDataStore[userId] = {
+    ...getUserDataById(userId),
+    walletEntries: Array.isArray(store.data.walletEntries) ? [...store.data.walletEntries] : [],
+    savingsEntries: Array.isArray(store.data.savingsEntries) ? [...store.data.savingsEntries] : [],
+    investmentsEntries: Array.isArray(store.data.investmentsEntries) ? [...store.data.investmentsEntries] : [],
+    settings: {
+      theme: store.ui.theme || "light",
+      hideBalance: Boolean(store.ui.hideBalance),
+      currency: store.ui.currency || "NGN",
+    },
+    updatedAt: new Date().toISOString(),
+  };
+
+  saveUserDataStore(userDataStore);
+};
+
+const loadUserData = (userId) => {
+  const userData = getUserDataById(userId);
+
+  if (typeof document !== "undefined") {
+    document.documentElement.setAttribute("data-theme", userData.settings.theme || "light");
   }
 
-  saveRegisteredUsers(users);
+  fanout(store, "data.walletEntries", userData.walletEntries || []);
+  fanout(store, "data.savingsEntries", userData.savingsEntries || []);
+  fanout(store, "data.investmentsEntries", userData.investmentsEntries || []);
+  store.ui.theme = userData.settings.theme || "light";
+  store.ui.hideBalance = Boolean(userData.settings.hideBalance);
+  store.ui.currency = userData.settings.currency || "NGN";
+};
 
-  // Active session profile
+export const currentAuth = () => ({
+  user: store.auth?.user || null,
+  session: store.auth?.session || null,
+  isAuthenticated: Boolean(store.auth?.isAuthenticated),
+  authenticated: Boolean(store.auth?.authenticated),
+  loading: Boolean(store.auth?.loading),
+  status: store.auth?.status || "unauthenticated",
+});
+
+export const initializeAuth = async () => {
+  const activeToken = getActiveSessionToken();
+  if (!activeToken) {
+    store.auth.user = null;
+    store.auth.session = null;
+    store.auth.isAuthenticated = false;
+    store.auth.authenticated = false;
+    store.auth.loading = false;
+    store.auth.status = "unauthenticated";
+    return { ok: false, error: "No active session." };
+  }
+
+  const session = getSessions().find(
+    (entry) =>
+      entry.token === activeToken &&
+      (!entry.expiresAt || new Date(entry.expiresAt).getTime() > Date.now())
+  );
+
+  if (!session) {
+    clearInvalidSession();
+    store.auth.user = null;
+    store.auth.session = null;
+    store.auth.isAuthenticated = false;
+    store.auth.authenticated = false;
+    store.auth.loading = false;
+    store.auth.status = "unauthenticated";
+    return { ok: false, error: "Session expired." };
+  }
+
+  const userRecord = getRegisteredUsers().find((user) => user.id === session.userId);
+  if (!userRecord) {
+    clearInvalidSession();
+    store.auth.user = null;
+    store.auth.session = null;
+    store.auth.isAuthenticated = false;
+    store.auth.authenticated = false;
+    store.auth.loading = false;
+    store.auth.status = "unauthenticated";
+    return { ok: false, error: "User session is invalid." };
+  }
+
   const profile = {
-    id: newUserRecord.id,
-    name: newUserRecord.name,
-    phone: newUserRecord.phone,
-    email: newUserRecord.email,
-    createdAt: newUserRecord.createdAt,
+    id: userRecord.id,
+    name: userRecord.name || "User",
+    phone: userRecord.phone || "",
+    email: userRecord.email,
+    createdAt: userRecord.createdAt || new Date().toISOString(),
   };
 
   store.auth.user = profile;
+  store.auth.session = session;
   store.auth.isAuthenticated = true;
-  return profile;
+  store.auth.authenticated = true;
+  store.auth.loading = false;
+  store.auth.status = "authenticated";
+  loadUserData(profile.id);
+  return { ok: true, user: profile, session };
 };
 
-export const signIn = (email, password) => {
-  const normalizedEmail = String(email || "").trim().toLowerCase();
-  const rawPassword = String(password || "").trim();
-  const users = getRegisteredUsers();
+export const signUp = async (userData) => {
+  const name = String(userData?.name || "").trim();
+  const phone = String(userData?.phone || "").trim();
+  const email = normalizeEmail(userData?.email);
+  const password = String(userData?.password || "");
 
-  let matchedUser = users.find(
-    (u) => String(u.email || "").trim().toLowerCase() === normalizedEmail
+  if (!name || !phone || !email || !password) {
+    return { ok: false, error: "Please fill in all fields." };
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { ok: false, error: "Please enter a valid email address." };
+  }
+
+  if (password.length < 6) {
+    return { ok: false, error: "Password must be at least 6 characters." };
+  }
+
+  const users = getRegisteredUsers();
+  const emailExists = users.some(
+    (entry) => normalizeEmail(entry.email) === email
   );
 
-  // Check store.auth.user as fallback
-  if (
-    !matchedUser &&
-    store.auth?.user &&
-    String(store.auth.user.email || "").trim().toLowerCase() === normalizedEmail
-  ) {
-    matchedUser = store.auth.user;
+  if (emailExists) {
+    return { ok: false, error: "An account with this email already exists." };
   }
 
-  if (matchedUser) {
-    // Verify password if password is set on the account
-    if (matchedUser.password && matchedUser.password !== rawPassword) {
-      return false;
-    }
+  const newUser = {
+    id: userData?.id || generateId(),
+    name,
+    phone,
+    email,
+    passwordHash: await serializePassword(password),
+    createdAt: userData?.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
 
-    const profile = {
-      id: matchedUser.id || generateId(),
-      name: matchedUser.name || "User",
-      phone: matchedUser.phone || "",
-      email: matchedUser.email,
-      createdAt: matchedUser.createdAt || new Date().toISOString(),
-    };
+  users.push(newUser);
+  saveRegisteredUsers(users);
 
-    store.auth.user = profile;
-    store.auth.isAuthenticated = true;
-    return true;
+  const userDataStore = getUserDataStore();
+  userDataStore[newUser.id] = createDefaultUserData(newUser.id);
+  saveUserDataStore(userDataStore);
+
+  const session = createSessionRecord(newUser.id);
+  const profile = {
+    id: newUser.id,
+    name: newUser.name,
+    phone: newUser.phone,
+    email: newUser.email,
+    createdAt: newUser.createdAt,
+  };
+
+  store.auth.user = profile;
+  store.auth.session = session;
+  store.auth.isAuthenticated = true;
+  store.auth.authenticated = true;
+  store.auth.loading = false;
+  store.auth.status = "authenticated";
+  loadUserData(profile.id);
+
+  return { ok: true, user: profile, session };
+};
+
+export const signIn = async (email, password) => {
+  const normalizedEmail = normalizeEmail(email);
+  const rawPassword = String(password ?? "");
+
+  if (!normalizedEmail || !rawPassword) {
+    return { ok: false, error: "Email and password are required." };
   }
 
-  return false;
+  const users = getRegisteredUsers();
+  const matchedUser = users.find(
+    (user) => normalizeEmail(user.email) === normalizedEmail
+  );
+
+  if (!matchedUser) {
+    return { ok: false, error: "Invalid email or password." };
+  }
+
+  const providedHash = await serializePassword(rawPassword);
+  if (matchedUser.passwordHash !== providedHash) {
+    return { ok: false, error: "Invalid email or password." };
+  }
+
+  const session = createSessionRecord(matchedUser.id);
+  const profile = {
+    id: matchedUser.id,
+    name: matchedUser.name || "User",
+    phone: matchedUser.phone || "",
+    email: matchedUser.email,
+    createdAt: matchedUser.createdAt || new Date().toISOString(),
+  };
+
+  store.auth.user = profile;
+  store.auth.session = session;
+  store.auth.isAuthenticated = true;
+  store.auth.authenticated = true;
+  store.auth.loading = false;
+  store.auth.status = "authenticated";
+  loadUserData(profile.id);
+
+  return { ok: true, user: profile, session };
 };
 
 export const signOut = () => {
+  const currentToken = getActiveSessionToken();
+  const sessions = getSessions().filter(
+    (session) => session.token !== currentToken
+  );
+  saveSessions(sessions);
+  setActiveSessionToken(null);
+
   store.auth.user = null;
+  store.auth.session = null;
   store.auth.isAuthenticated = false;
+  store.auth.authenticated = false;
+  store.auth.loading = false;
+  store.auth.status = "unauthenticated";
+  store.auth.error = null;
+
+  fanout(store, "data.walletEntries", []);
+  fanout(store, "data.savingsEntries", []);
+  fanout(store, "data.investmentsEntries", []);
+  store.ui.theme = "light";
+  store.ui.hideBalance = false;
+  store.ui.currency = "NGN";
+
+  return { ok: true };
 };
 
-// Theme actions
+export const getSessionStorage = () => getSessions();
+
 export const toggleTheme = () => {
   store.ui.theme = store.ui.theme === "light" ? "dark" : "light";
-  document.documentElement.setAttribute("data-theme", store.ui.theme);
+  if (typeof document !== "undefined") {
+    document.documentElement.setAttribute("data-theme", store.ui.theme);
+  }
+  persistUserData();
 };
 
 export const toggleHideBalance = () => {
   store.ui.hideBalance = !store.ui.hideBalance;
+  persistUserData();
 };
 
 export const updateCurrency = (newCurrency) => {
   store.ui.currency = newCurrency;
+  if (typeof document !== "undefined") {
+    document.documentElement.setAttribute("data-theme", store.ui.theme);
+  }
+  persistUserData();
   refreshRates();
 };
 
@@ -138,90 +388,104 @@ export const refreshRates = async () => {
   store.ui.ratesUpdatedAt = Date.now();
 };
 
-
 // Financial actions
 export const addWalletEntry = (entry) => {
-  const newEntry = {
+  const nextEntry = {
     ...entry,
     id: generateId(),
     baseCurrency: entry.baseCurrency || store.ui.currency || "NGN",
     createdAt: new Date().toISOString(),
   };
-  fanout(store, "data.walletEntries", [...store.data.walletEntries, newEntry]);
+  fanout(store, "data.walletEntries", [...(store.data.walletEntries || []), nextEntry]);
+  persistUserData();
 };
 
 export const updateWalletEntry = (id, updatedEntry) => {
-  const index = store.data.walletEntries.findIndex((entry) => entry.id === id);
+  const entries = store.data.walletEntries || [];
+  const index = entries.findIndex((entry) => entry.id === id);
   if (index !== -1) {
-    const updated = { ...store.data.walletEntries[index], ...updatedEntry };
-    fanout(store, "data.walletEntries", store.data.walletEntries.map((e, i) => (i === index ? updated : e)));
+    const updated = { ...entries[index], ...updatedEntry };
+    const nextEntries = entries.map((entry, currentIndex) => (currentIndex === index ? updated : entry));
+    fanout(store, "data.walletEntries", nextEntries);
+    persistUserData();
   }
 };
 
 export const deleteWalletEntry = (id) => {
-  fanout(store, "data.walletEntries", store.data.walletEntries.filter((entry) => entry.id !== id));
+  const nextEntries = (store.data.walletEntries || []).filter((entry) => entry.id !== id);
+  fanout(store, "data.walletEntries", nextEntries);
+  persistUserData();
 };
 
 export const addSavingsEntry = (entry) => {
-  const newEntry = {
+  const nextEntry = {
     ...entry,
     id: generateId(),
     baseCurrency: entry.baseCurrency || store.ui.currency || "NGN",
     createdAt: new Date().toISOString(),
     interestAccrued: 0,
   };
-  fanout(store, "data.savingsEntries", [...store.data.savingsEntries, newEntry]);
+  fanout(store, "data.savingsEntries", [...(store.data.savingsEntries || []), nextEntry]);
+  persistUserData();
 };
 
 export const updateSavingsEntry = (id, updatedEntry) => {
-  const index = store.data.savingsEntries.findIndex((entry) => entry.id === id);
+  const entries = store.data.savingsEntries || [];
+  const index = entries.findIndex((entry) => entry.id === id);
   if (index !== -1) {
-    const updated = { ...store.data.savingsEntries[index], ...updatedEntry };
-    fanout(store, "data.savingsEntries", store.data.savingsEntries.map((e, i) => (i === index ? updated : e)));
+    const updated = { ...entries[index], ...updatedEntry };
+    const nextEntries = entries.map((entry, currentIndex) => (currentIndex === index ? updated : entry));
+    fanout(store, "data.savingsEntries", nextEntries);
+    persistUserData();
   }
 };
 
 export const deleteSavingsEntry = (id) => {
-  fanout(store, "data.savingsEntries", store.data.savingsEntries.filter((entry) => entry.id !== id));
+  const nextEntries = (store.data.savingsEntries || []).filter((entry) => entry.id !== id);
+  fanout(store, "data.savingsEntries", nextEntries);
+  persistUserData();
 };
 
 export const addInvestmentEntry = (entry) => {
-  const newEntry = {
+  const nextEntry = {
     ...entry,
     id: generateId(),
     baseCurrency: entry.baseCurrency || store.ui.currency || "NGN",
     createdAt: new Date().toISOString(),
   };
-  fanout(store, "data.investmentsEntries", [...store.data.investmentsEntries, newEntry]);
+  fanout(store, "data.investmentsEntries", [...(store.data.investmentsEntries || []), nextEntry]);
+  persistUserData();
 };
 
 export const addMultipleInvestmentEntries = (entries) => {
   if (!Array.isArray(entries) || entries.length === 0) return;
-  const newEntries = entries.map((entry) => ({
+  const nextEntries = entries.map((entry) => ({
     ...entry,
     id: generateId(),
     baseCurrency: entry.baseCurrency || store.ui.currency || "NGN",
     createdAt: new Date().toISOString(),
   }));
-  fanout(store, "data.investmentsEntries", [
-    ...store.data.investmentsEntries,
-    ...newEntries,
-  ]);
+  fanout(store, "data.investmentsEntries", [...(store.data.investmentsEntries || []), ...nextEntries]);
+  persistUserData();
 };
 
 export const updateInvestmentEntry = (id, updatedEntry) => {
-  const index = store.data.investmentsEntries.findIndex((entry) => entry.id === id);
+  const entries = store.data.investmentsEntries || [];
+  const index = entries.findIndex((entry) => entry.id === id);
   if (index !== -1) {
-    const updated = { ...store.data.investmentsEntries[index], ...updatedEntry };
-    fanout(store, "data.investmentsEntries", store.data.investmentsEntries.map((e, i) => (i === index ? updated : e)));
+    const updated = { ...entries[index], ...updatedEntry };
+    const nextEntries = entries.map((entry, currentIndex) => (currentIndex === index ? updated : entry));
+    fanout(store, "data.investmentsEntries", nextEntries);
+    persistUserData();
   }
 };
 
 export const deleteInvestmentEntry = (id) => {
-  fanout(store, "data.investmentsEntries", store.data.investmentsEntries.filter((entry) => entry.id !== id));
+  const nextEntries = (store.data.investmentsEntries || []).filter((entry) => entry.id !== id);
+  fanout(store, "data.investmentsEntries", nextEntries);
+  persistUserData();
 };
 
-// Utility function for interest calculation (moved from DataContext)
 export const calculateInterest = (entry) => {
   const daysDiff = Math.floor(
     (Date.now() - new Date(entry.createdAt)) / (1000 * 60 * 60 * 24)
@@ -230,3 +494,5 @@ export const calculateInterest = (entry) => {
     (parseFloat(entry.amount) * (parseFloat(entry.interestRate) / 100)) / 365;
   return Math.max(0, dailyInterest * daysDiff);
 };
+
+export { getRegisteredUsers, saveRegisteredUsers, getSessions, saveSessions };
