@@ -265,6 +265,22 @@ p {
 
 @media (min-width: 1024px) {
   .app-layout {
+    --sidebar-page-accent: var(--accent-blue);
+  }
+
+  .app-layout[data-page="savings"] {
+    --sidebar-page-accent: var(--money-green);
+  }
+
+  .app-layout[data-page="investments"] {
+    --sidebar-page-accent: var(--accent-indigo);
+  }
+
+  .app-layout[data-page="account"] {
+    --sidebar-page-accent: var(--accent-cyan);
+  }
+
+  .app-layout {
     display: flex;
     flex-direction: row;
   }
@@ -362,13 +378,13 @@ p {
 
   .side-nav .nav-item.active {
     color: #ffffff;
-    background: var(--sidebar-active-bg);
-    border: 1px solid rgba(59, 130, 246, 0.35);
-    box-shadow: 0 4px 18px rgba(37, 99, 235, 0.25);
+    background: color-mix(in srgb, var(--sidebar-page-accent) 22%, transparent);
+    border: 1px solid color-mix(in srgb, var(--sidebar-page-accent) 42%, transparent);
+    box-shadow: 0 4px 18px color-mix(in srgb, var(--sidebar-page-accent) 25%, transparent);
   }
 
   .side-nav .nav-item.active .nav-icon {
-    color: var(--accent-cyan);
+    color: var(--sidebar-page-accent);
   }
 
   /* Centered main container on desktop */
