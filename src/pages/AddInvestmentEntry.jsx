@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useReactor } from "sia-reactor/adapters/react";
 import { store } from "../store/index.js";
 import { addInvestmentEntry, updateInvestmentEntry } from "../store/actions.js";
-import { getStockPrice, searchStock } from "../utils/marketData.js";
+import { getStockPrice, searchStockSuggestions } from "../utils/marketData.js";
 import PortfolioImportModal from "../components/PortfolioImportModal.jsx";
 import { FaArrowLeft, FaCloudUploadAlt } from "react-icons/fa";
 
@@ -28,7 +28,13 @@ export default function AddInvestmentEntry() {
   const [priceLookupStatus, setPriceLookupStatus] = useState("");
   const [priceLookupError, setPriceLookupError] = useState("");
   const [matchedStock, setMatchedStock] = useState(null);
+  const [stockSuggestions, setStockSuggestions] = useState([]);
+  const [isStockSuggestionsOpen, setIsStockSuggestionsOpen] = useState(false);
+  const [isSearchingStocks, setIsSearchingStocks] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const stockFieldRef = useRef(null);
+  const selectedStockNameRef = useRef("");
+  const stockLookupRequestRef = useRef(0);
 
   useEffect(() => {
     document.title = id ? "SaveMyWay — Edit Investment" : "SaveMyWay — Add Investment";
@@ -36,6 +42,7 @@ export default function AddInvestmentEntry() {
 
   useEffect(() => {
     if (editingEntry) {
+      selectedStockNameRef.current = editingEntry.name || "";
       setFormData({
         name: editingEntry.name,
         amount: String(editingEntry.amount),
@@ -59,56 +66,113 @@ export default function AddInvestmentEntry() {
   useEffect(() => {
     const query = formData.name.trim();
 
+    if (
+      selectedStockNameRef.current &&
+      query.toLowerCase() === selectedStockNameRef.current.toLowerCase()
+    ) {
+      setStockSuggestions([]);
+      setIsStockSuggestionsOpen(false);
+      return;
+    }
+
     if (query.length < 2) {
-      setMatchedStock(null);
+      setStockSuggestions([]);
+      setIsStockSuggestionsOpen(false);
       setPriceLookupStatus("");
       setPriceLookupError("");
+      setIsSearchingStocks(false);
       return;
     }
 
     let cancelled = false;
     const lookup = setTimeout(async () => {
-      setPriceLookupStatus("Looking up stock...");
+      setIsSearchingStocks(true);
+      setPriceLookupStatus("Searching stocks...");
       setPriceLookupError("");
 
       try {
-        const result = await searchStock(query);
+        const results = await searchStockSuggestions(query);
         if (cancelled) return;
 
-        if (!result) {
-          setMatchedStock(null);
-          setPriceLookupStatus("");
-          setPriceLookupError("No stock match found yet.");
-          return;
-        }
-
-        setMatchedStock(result);
-        setPriceLookupStatus(`Matched ${result.displaySymbol || result.symbol}`);
-
-        const quote = await getStockPrice(result.symbol, result.market, { force: true });
-        if (cancelled) return;
-
-        setFormData((prev) => ({
-          ...prev,
-          symbol: result.symbol,
-          market: result.market,
-          currentPrice: String(quote.price),
-          priceUpdatedAt: quote.updatedAt,
-          priceSource: quote.source,
-        }));
-        setPriceLookupStatus(`Price loaded for ${result.displaySymbol || result.symbol}`);
+        setStockSuggestions(results);
+        setIsStockSuggestionsOpen(results.length > 0);
+        setPriceLookupStatus(
+          results.length > 0
+            ? ""
+            : "No suggestions found. You can still enter a ticker manually.",
+        );
       } catch (error) {
         if (cancelled) return;
+        setStockSuggestions([]);
+        setIsStockSuggestionsOpen(false);
         setPriceLookupStatus("");
-        setPriceLookupError(error.message || "Could not auto-fill the latest price.");
+        setPriceLookupError(error.message || "Could not search for stocks.");
+      } finally {
+        if (!cancelled) setIsSearchingStocks(false);
       }
-    }, 700);
+    }, 350);
 
     return () => {
       cancelled = true;
       clearTimeout(lookup);
     };
   }, [formData.name]);
+
+  const handleStockNameChange = (name) => {
+    stockLookupRequestRef.current += 1;
+    selectedStockNameRef.current = "";
+    setMatchedStock(null);
+    setStockSuggestions([]);
+    setIsStockSuggestionsOpen(false);
+    setIsSearchingStocks(false);
+    setPriceLookupStatus("");
+    setPriceLookupError("");
+    setFormData((prev) => ({
+      ...prev,
+      name,
+      symbol: "",
+      market: "",
+      currentPrice: "",
+      priceUpdatedAt: "",
+      priceSource: "",
+    }));
+  };
+
+  const handleSelectStock = async (stock) => {
+    selectedStockNameRef.current = stock.name;
+    setStockSuggestions([]);
+    setIsStockSuggestionsOpen(false);
+    setMatchedStock(stock);
+    setPriceLookupError("");
+    setPriceLookupStatus(`Fetching price for ${stock.displaySymbol || stock.symbol}...`);
+    setFormData((prev) => ({
+      ...prev,
+      name: stock.name,
+      symbol: stock.symbol,
+      market: stock.market,
+      currentPrice: "",
+      priceUpdatedAt: "",
+      priceSource: "",
+    }));
+
+    const requestId = ++stockLookupRequestRef.current;
+    try {
+      const quote = await getStockPrice(stock.symbol, stock.market, { force: true });
+      if (requestId !== stockLookupRequestRef.current) return;
+
+      setFormData((prev) => ({
+        ...prev,
+        currentPrice: String(quote.price),
+        priceUpdatedAt: quote.updatedAt,
+        priceSource: quote.source,
+      }));
+      setPriceLookupStatus(`Price loaded for ${stock.displaySymbol || stock.symbol}`);
+    } catch (error) {
+      if (requestId !== stockLookupRequestRef.current) return;
+      setPriceLookupStatus("");
+      setPriceLookupError(error.message || "Could not fetch the latest price.");
+    }
+  };
 
   const sanitizeNumberInput = (value) => {
     const sanitized = value.replace(/[^0-9.]/g, "");
@@ -170,21 +234,61 @@ export default function AddInvestmentEntry() {
         </h2>
 
         <form onSubmit={handleSubmit} className="form">
-          <div className="floating-field">
+          <div
+            className="floating-field stock-name-field"
+            ref={stockFieldRef}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) {
+                setIsStockSuggestionsOpen(false);
+              }
+            }}
+          >
             <input
               type="text"
               className="input floating-input"
               value={formData.name}
-              onChange={(e) => handleChange("name", e.target.value)}
+              onChange={(e) => handleStockNameChange(e.target.value)}
+              onFocus={() => {
+                if (stockSuggestions.length > 0) setIsStockSuggestionsOpen(true);
+              }}
+              autoComplete="off"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded={isStockSuggestionsOpen}
+              aria-controls="stock-suggestions"
               placeholder=" "
               required
             />
             <label>Name of Stock</label>
+            {isStockSuggestionsOpen && stockSuggestions.length > 0 && (
+              <ul id="stock-suggestions" className="stock-suggestions" role="listbox">
+                {stockSuggestions.map((stock) => (
+                  <li key={`${stock.market}:${stock.symbol}`} role="presentation">
+                    <button
+                      type="button"
+                      className="stock-suggestion"
+                      role="option"
+                      aria-selected={matchedStock?.symbol === stock.symbol}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => handleSelectStock(stock)}
+                    >
+                      <span className="stock-suggestion-name">
+                        <strong>{stock.name}</strong>
+                        <small>{stock.market}</small>
+                      </span>
+                      <span className="stock-suggestion-symbol">
+                        {stock.displaySymbol || stock.symbol}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
-          {(priceLookupStatus || priceLookupError || matchedStock) && (
+          {(priceLookupStatus || priceLookupError || matchedStock || isSearchingStocks) && (
             <div className={`price-lookup-note ${priceLookupError ? "error" : ""}`}>
-              {priceLookupError ||
+              {isSearchingStocks ? "Searching stocks..." : priceLookupError ||
                 `${priceLookupStatus}${
                   matchedStock?.market ? ` • ${matchedStock.market}` : ""
                 }`}

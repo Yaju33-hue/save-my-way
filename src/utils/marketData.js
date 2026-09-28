@@ -239,77 +239,109 @@ const searchNgxStock = async (query) => {
   };
 };
 
-const searchFinnhubStock = async (query) => {
-  if (FINNHUB_API_KEY) {
-    try {
-      const data = await fetchJson(getFinnhubUrl("search", { q: query }));
-      const result = (data.result || []).find(
-        (item) =>
-          item.type === "Common Stock" ||
-          item.type === "EQS" ||
-          item.symbol ||
-          item.displaySymbol,
-      );
+const POPULAR_US_STOCKS = [
+  { symbol: "AAPL", name: "Apple Inc.", aliases: ["apple"] },
+  { symbol: "AMZN", name: "Amazon.com, Inc.", aliases: ["amazon"] },
+  { symbol: "MSFT", name: "Microsoft Corporation", aliases: ["microsoft"] },
+  { symbol: "TSLA", name: "Tesla, Inc.", aliases: ["tesla"] },
+  { symbol: "GOOGL", name: "Alphabet Inc.", aliases: ["google", "alphabet"] },
+  { symbol: "NVDA", name: "NVIDIA Corporation", aliases: ["nvidia"] },
+  { symbol: "META", name: "Meta Platforms, Inc.", aliases: ["meta", "facebook"] },
+  { symbol: "NFLX", name: "Netflix, Inc.", aliases: ["netflix"] },
+  { symbol: "BRK.B", name: "Berkshire Hathaway Inc.", aliases: ["berkshire hathaway"] },
+  { symbol: "AVGO", name: "Broadcom Inc.", aliases: ["broadcom"] },
+  { symbol: "AMD", name: "Advanced Micro Devices, Inc.", aliases: ["amd"] },
+  { symbol: "INTC", name: "Intel Corporation", aliases: ["intel"] },
+  { symbol: "KO", name: "The Coca-Cola Company", aliases: ["coca cola", "coca-cola"] },
+  { symbol: "WMT", name: "Walmart Inc.", aliases: ["walmart"] },
+  { symbol: "JPM", name: "JPMorgan Chase & Co.", aliases: ["jpmorgan", "jp morgan"] },
+  { symbol: "DIS", name: "The Walt Disney Company", aliases: ["disney"] },
+  { symbol: "UBER", name: "Uber Technologies, Inc.", aliases: ["uber"] },
+  { symbol: "PLTR", name: "Palantir Technologies Inc.", aliases: ["palantir"] },
+];
 
-      if (result) {
-        return {
-          symbol: result.symbol,
-          displaySymbol: result.displaySymbol || result.symbol,
-          name: result.description || result.symbol,
-          market: "US",
-          source: "finnhub",
-        };
-      }
-    } catch {
-      // fallback
-    }
-  }
+const getPopularUsStockSuggestions = (query) => {
+  const normalizedQuery = normalize(query);
+  const matches = POPULAR_US_STOCKS.map((stock) => {
+    const terms = [stock.symbol, stock.name, ...stock.aliases].map(normalize);
+    const matchRank = terms.reduce((bestRank, term) => {
+      if (term === normalizedQuery) return 0;
+      if (term.startsWith(normalizedQuery)) return Math.min(bestRank, 1);
+      if (term.includes(normalizedQuery)) return Math.min(bestRank, 2);
+      return bestRank;
+    }, Infinity);
+    return { stock, matchRank };
+  });
 
-  const upperQuery = query.trim().toUpperCase();
-  const POPULAR_US = {
-    APPLE: "AAPL",
-    AMAZON: "AMZN",
-    MICROSOFT: "MSFT",
-    TESLA: "TSLA",
-    GOOGLE: "GOOGL",
-    ALPHABET: "GOOGL",
-    NVIDIA: "NVDA",
-    META: "META",
-    FACEBOOK: "META",
-    NETFLIX: "NFLX",
-  };
-
-  if (POPULAR_US[upperQuery]) {
-    return {
-      symbol: POPULAR_US[upperQuery],
-      displaySymbol: POPULAR_US[upperQuery],
-      name: query.trim(),
+  return matches
+    .filter(({ matchRank }) => Number.isFinite(matchRank))
+    .sort((a, b) => a.matchRank - b.matchRank || a.stock.name.localeCompare(b.stock.name))
+    .map(({ stock }) => ({
+      symbol: stock.symbol,
+      displaySymbol: stock.symbol,
+      name: stock.name,
       market: "US",
       source: "popular-symbols",
-    };
-  }
+    }));
+};
 
-  if (/^[A-Z]{1,5}$/.test(upperQuery)) {
-    return {
+const searchFinnhubStocks = async (query) => {
+  if (!FINNHUB_API_KEY) return [];
+
+  try {
+    const data = await fetchJson(getFinnhubUrl("search", { q: query }));
+    const seenSymbols = new Set();
+    return (data.result || [])
+      .filter((item) => item.type === "Common Stock" && item.symbol)
+      .filter((item) => {
+        const symbol = item.symbol.toUpperCase();
+        if (seenSymbols.has(symbol)) return false;
+        seenSymbols.add(symbol);
+        return true;
+      })
+      .slice(0, 8)
+      .map((item) => ({
+        symbol: item.symbol,
+        displaySymbol: item.displaySymbol || item.symbol,
+        name: item.description || item.symbol,
+        market: "US",
+        source: "finnhub",
+      }));
+  } catch {
+    return [];
+  }
+};
+
+export const searchStockSuggestions = async (query) => {
+  const normalizedQuery = normalize(query);
+  if (normalizedQuery.length < 2) return [];
+
+  const ngxMatch = await searchNgxStock(query);
+  if (ngxMatch) return [ngxMatch];
+
+  const finnhubMatches = await searchFinnhubStocks(query);
+  if (finnhubMatches.length > 0) return finnhubMatches;
+
+  const popularMatches = getPopularUsStockSuggestions(query);
+  if (popularMatches.length > 0) return popularMatches.slice(0, 8);
+
+  const upperQuery = query.trim().toUpperCase();
+  if (/^[A-Z][A-Z0-9.-]{0,9}$/.test(upperQuery)) {
+    return [{
       symbol: upperQuery,
       displaySymbol: upperQuery,
       name: upperQuery,
       market: "US",
       source: "symbol-lookup",
-    };
+    }];
   }
 
-  return null;
+  return [];
 };
 
 export const searchStock = async (query) => {
-  const normalizedQuery = normalize(query);
-  if (normalizedQuery.length < 2) return null;
-
-  const ngxMatch = await searchNgxStock(query);
-  if (ngxMatch) return ngxMatch;
-
-  return searchFinnhubStock(query);
+  const suggestions = await searchStockSuggestions(query);
+  return suggestions[0] || null;
 };
 
 const getYahooStockPrice = async (symbol) => {
@@ -361,6 +393,11 @@ const getUsStockPrice = async (symbol, { allowStale = true, force = false } = {}
   } catch (error) {
     const stale = allowStale ? getCachedPrice(symbol, "US") : null;
     if (stale) return { ...stale, error: error.message };
+    if (error instanceof TypeError) {
+      throw new Error(
+        "Could not fetch the US stock price. Yahoo Finance may be blocked by browser CORS or your network. Add VITE_FINNHUB_API_KEY to the production build, or enter the price manually.",
+      );
+    }
     throw error;
   }
 };
