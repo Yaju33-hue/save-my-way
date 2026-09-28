@@ -43,6 +43,27 @@ export default function Investments() {
   const [isDraggingOverPage, setIsDraggingOverPage] = useState(false);
   const [droppedFile, setDroppedFile] = useState(null);
   const [isRefreshingPrices, setIsRefreshingPrices] = useState(false);
+  const [investmentSort, setInvestmentSort] = useState("default");
+
+  const sortedInvestments = useMemo(() => {
+    const getCurrentValue = (entry) =>
+      (Number(entry.amount) || 0) * (Number(entry.currentPrice) || 0);
+    const getProfitLoss = (entry) =>
+      getCurrentValue(entry) - (Number(entry.amountSpent) || 0);
+    const comparators = {
+      "name-asc": (a, b) => (a.name || a.symbol || "").localeCompare(b.name || b.symbol || "", undefined, { sensitivity: "base", numeric: true }),
+      "name-desc": (a, b) => (b.name || b.symbol || "").localeCompare(a.name || a.symbol || "", undefined, { sensitivity: "base", numeric: true }),
+      "value-desc": (a, b) => getCurrentValue(b) - getCurrentValue(a),
+      "value-asc": (a, b) => getCurrentValue(a) - getCurrentValue(b),
+      "profit-desc": (a, b) => getProfitLoss(b) - getProfitLoss(a),
+      "profit-asc": (a, b) => getProfitLoss(a) - getProfitLoss(b),
+      "date-desc": (a, b) => Date.parse(b.createdAt || "") - Date.parse(a.createdAt || ""),
+      "date-asc": (a, b) => Date.parse(a.createdAt || "") - Date.parse(b.createdAt || ""),
+    };
+    const compare = comparators[investmentSort];
+
+    return compare ? [...investmentEntries].sort(compare) : investmentEntries;
+  }, [investmentEntries, investmentSort]);
 
   const trackedInvestmentsKey = investmentEntries
     .map((entry) => `${entry.id}:${entry.symbol || ""}:${entry.market || ""}`)
@@ -294,8 +315,28 @@ export default function Investments() {
           </div>
         </div>
       ) : (
+        <>
+          <div className="entries-toolbar">
+            <label htmlFor="investment-sort">Sort by</label>
+            <select
+              id="investment-sort"
+              className="investment-sort-select"
+              value={investmentSort}
+              onChange={(e) => setInvestmentSort(e.target.value)}
+            >
+              <option value="default">Default order</option>
+              <option value="name-asc">Name (A to Z)</option>
+              <option value="name-desc">Name (Z to A)</option>
+              <option value="value-desc">Current value (high to low)</option>
+              <option value="value-asc">Current value (low to high)</option>
+              <option value="profit-desc">Gain/loss (high to low)</option>
+              <option value="profit-asc">Gain/loss (low to high)</option>
+              <option value="date-desc">Newest first</option>
+              <option value="date-asc">Oldest first</option>
+            </select>
+          </div>
         <div className="entries-list">
-          {investmentEntries.map((entry) => (
+          {sortedInvestments.map((entry) => (
             <InvestmentCard
               key={entry.id}
               entry={entry}
@@ -304,6 +345,7 @@ export default function Investments() {
             />
           ))}
         </div>
+        </>
       )}
 
       <Link to="/investments/add" className="fab" aria-label="Add investment">

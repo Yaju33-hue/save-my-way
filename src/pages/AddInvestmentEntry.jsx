@@ -195,7 +195,7 @@ export default function AddInvestmentEntry() {
             <input
               type="number"
               min="0"
-              step="0.0001"
+              step="0.0000000001"
               inputMode="decimal"
               className="input floating-input"
               value={formData.amount}

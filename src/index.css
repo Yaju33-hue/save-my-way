@@ -795,6 +795,27 @@ p {
   gap: 0.75rem;
 }
 
+.entries-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.investment-sort-select {
+  min-width: 190px;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
 .entry-card-content {
   display: flex;
   justify-content: space-between;
@@ -920,7 +941,7 @@ p {
   right: 0;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   padding: 0.35rem;
   display: none;
