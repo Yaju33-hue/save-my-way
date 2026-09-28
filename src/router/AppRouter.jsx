@@ -7,6 +7,7 @@ import ScrollToTop from "../components/ScrollToTop.jsx";
 import SignUp from "../pages/SignUp.jsx";
 import SignIn from "../pages/SignIn.jsx";
 import MainApp from "../pages/MainApp.jsx";
+import { PrivacyPolicy, TermsOfService } from "../pages/LegalInfo.jsx";
 
 export default function AppRouter() {
   const state = useReactor(store);
@@ -17,6 +18,9 @@ export default function AppRouter() {
     <>
       <ScrollToTop />
       <Routes>
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
+
         {/* Public Authentication Routes */}
         <Route
           path="/signin"

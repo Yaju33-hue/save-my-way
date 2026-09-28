@@ -244,6 +244,7 @@ export default function AddInvestmentEntry() {
             }}
           >
             <input
+              id="stock-name"
               type="text"
               className="input floating-input"
               value={formData.name}
@@ -259,7 +260,7 @@ export default function AddInvestmentEntry() {
               placeholder=" "
               required
             />
-            <label>Name of Stock</label>
+            <label htmlFor="stock-name">Name of Stock</label>
             {isStockSuggestionsOpen && stockSuggestions.length > 0 && (
               <ul id="stock-suggestions" className="stock-suggestions" role="listbox">
                 {stockSuggestions.map((stock) => (
@@ -297,6 +298,7 @@ export default function AddInvestmentEntry() {
 
           <div className="floating-field">
             <input
+              id="stock-amount"
               type="number"
               min="0"
               step="0.0000000001"
@@ -308,11 +310,12 @@ export default function AddInvestmentEntry() {
               placeholder=" "
               required
             />
-            <label>Amount of Stock Bought</label>
+            <label htmlFor="stock-amount">Amount of Stock Bought</label>
           </div>
 
           <div className="floating-field">
             <input
+              id="stock-current-price"
               type="number"
               min="0"
               step="0.01"
@@ -324,11 +327,12 @@ export default function AddInvestmentEntry() {
               placeholder=" "
               required
             />
-            <label>Current Price per Share</label>
+            <label htmlFor="stock-current-price">Current Price per Share</label>
           </div>
 
           <div className="floating-field">
             <input
+              id="stock-amount-spent"
               type="number"
               min="0"
               step="0.01"
@@ -340,7 +344,7 @@ export default function AddInvestmentEntry() {
               placeholder=" "
               required
             />
-            <label>Amount Spent to Acquire Stock</label>
+            <label htmlFor="stock-amount-spent">Amount Spent to Acquire Stock</label>
           </div>
 
           <button type="submit" className="btn btn-primary form-btn">

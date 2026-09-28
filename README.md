@@ -1,16 +1,34 @@
-# React + Vite
+# SaveMyWay
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+SaveMyWay is a React and Vite personal-finance tracker for wallet activity, savings, and investment holdings. It uses React Router with hash-based URLs, a reactive client-side store, and a shared CSS token system.
 
-Currently, two official plugins are available:
+## Run locally
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```sh
+npm install
+npm run dev
+```
 
-## React Compiler
+Check the production build, lint, and auth tests with:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```sh
+npm run build
+npm run lint
+node --test src/store/auth.test.js
+```
 
-## Expanding the ESLint configuration
+## Market data
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Copy `.env.example` to `.env` to configure optional Finnhub and NGX market-data keys. Vite variables prefixed with `VITE_` are embedded in browser JavaScript and are visible to site visitors; do not use them for secrets that must remain private. Stock prices and exchange rates use third-party services and may be delayed or unavailable.
+
+## Storage and account limitations
+
+The current app stores profile, session, settings, and finance records in browser `localStorage`. It has no server-side account system, cloud synchronization, account recovery, or remote backup. Sign-out does not erase locally stored records, and clearing site storage may permanently remove them.
+
+Password handling is client-side and should not be treated as production authentication. The current code uses an unsalted SHA-256 digest when Web Crypto is available and has a plaintext fallback otherwise. Do not use this version to protect credentials or sensitive financial records.
+
+Portfolio spreadsheets and PDFs are parsed in the browser. Privacy and terms pages are drafts based on current source behavior; they need review by the app operator and qualified counsel before being treated as formal legal documents.
+
+## Deployment
+
+The configured deployment target is GitHub Pages under `/save-my-way/`. Run `npm run deploy` to build and publish the site. Any `VITE_` values included in the build are public.

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { signUp } from "../store/actions.js";
 import { useNavigate } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
+import LegalLinks from "../components/LegalLinks.jsx";
 
 export default function SignUp() {
   const [formData, setFormData] = useState({
@@ -74,11 +75,12 @@ export default function SignUp() {
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
-          {error && <div className="auth-error">{error}</div>}
+          {error && <div className="auth-error" role="alert">{error}</div>}
 
           <div className="form-group">
-            <label className="label">Full Name</label>
+            <label className="label" htmlFor="signup-name">Full Name</label>
             <input
+              id="signup-name"
               type="text"
               name="name"
               className="input"
@@ -91,8 +93,9 @@ export default function SignUp() {
           </div>
 
           <div className="form-group">
-            <label className="label">Phone Number</label>
+            <label className="label" htmlFor="signup-phone">Phone Number</label>
             <input
+              id="signup-phone"
               type="tel"
               name="phone"
               className="input"
@@ -106,8 +109,9 @@ export default function SignUp() {
           </div>
 
           <div className="form-group">
-            <label className="label">Email Address</label>
+            <label className="label" htmlFor="signup-email">Email Address</label>
             <input
+              id="signup-email"
               type="email"
               name="email"
               className="input"
@@ -120,8 +124,9 @@ export default function SignUp() {
           </div>
 
           <div className="form-group">
-            <label className="label">Password</label>
+            <label className="label" htmlFor="signup-password">Password</label>
             <input
+              id="signup-password"
               type="password"
               name="password"
               className="input"
@@ -154,6 +159,7 @@ export default function SignUp() {
           </button>
         </div>
       </div>
+      <LegalLinks />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import React from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { FaHome, FaWallet, FaPiggyBank, FaUniversity, FaUser } from "react-icons/fa";
 
 const navItems = [
@@ -11,7 +11,6 @@ const navItems = [
 ];
 
 export default function BottomNav() {
-  const navigate = useNavigate();
   const location = useLocation();
 
   const isActive = (path) => {
@@ -20,16 +19,17 @@ export default function BottomNav() {
   };
 
   return (
-    <nav className="bottom-nav">
+    <nav className="bottom-nav" aria-label="Main navigation">
       {navItems.map(({ path, label, icon: Icon }) => (
-        <button
+        <Link
           key={path}
           className={`nav-item ${isActive(path) ? "active" : ""}`}
-          onClick={() => navigate(path)}
+          to={path}
+          aria-current={isActive(path) ? "page" : undefined}
         >
           <Icon />
           <span>{label}</span>
-        </button>
+        </Link>
       ))}
     </nav>
   );

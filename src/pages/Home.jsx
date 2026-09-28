@@ -18,7 +18,7 @@ import {
   FaEye,
   FaEyeSlash,
 } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 export default function Home() {
   const state = useReactor(store);
@@ -28,8 +28,6 @@ export default function Home() {
   const totalInterest = useSelector(store, selectTotalInterest);
   const totalInvestmentProfitLoss = useSelector(store, selectInvestmentProfitLoss);
   const hideBalance = state.ui.hideBalance;
-
-  const navigate = useNavigate();
 
   useEffect(() => {
     document.title = "SaveMyWay — Home";
@@ -64,12 +62,9 @@ export default function Home() {
       </div>
 
       <div className="home-summary-grid">
-        <div
+        <Link
           className="home-summary-card clickable-card"
-          onClick={() => navigate("/wallet")}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && navigate("/wallet")}
+          to="/wallet"
         >
           <div className="summary-card-header">
             <div className="summary-icon wallet-summary-icon">
@@ -83,14 +78,11 @@ export default function Home() {
             amount={hideBalance ? 0 : walletTotal}
             className="summary-amount"
           />
-        </div>
+        </Link>
 
-        <div
+        <Link
           className="home-summary-card clickable-card"
-          onClick={() => navigate("/savings")}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && navigate("/savings")}
+          to="/savings"
         >
           <div className="summary-card-header">
             <div className="summary-icon savings-summary-icon">
@@ -104,14 +96,11 @@ export default function Home() {
             amount={hideBalance ? 0 : savingsTotal}
             className="summary-amount"
           />
-        </div>
+        </Link>
 
-        <div
+        <Link
           className="home-summary-card clickable-card"
-          onClick={() => navigate("/investments")}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && navigate("/investments")}
+          to="/investments"
         >
           <div className="summary-card-header">
             <div className="summary-icon investments-summary-icon">
@@ -133,7 +122,7 @@ export default function Home() {
             amount={hideBalance ? 0 : investmentsTotal}
             className="summary-amount"
           />
-        </div>
+        </Link>
       </div>
 
       {totalInterest > 0 && (

@@ -1,6 +1,6 @@
-/* ==========================================================================
-   SAVEMYWAY — MODERN DESIGN SYSTEM & STYLESHEET
-   ========================================================================== */
+/* ========================================================================
+  SAVEMYWAY DESIGN SYSTEM
+  ======================================================================== */
 
 /* --------------------------------------------------------------------------
    1. RESET & DESIGN TOKENS
@@ -52,32 +52,38 @@ input[type="number"] {
   --warning-bg: rgba(245, 158, 11, 0.1);
 
   --accent-blue: #2563eb;
-  --accent-indigo: #4f46e5;
+  --accent-teal: #0f766e;
   --accent-cyan: #06b6d4;
 
   --sidebar-bg: #0f172a;
   --sidebar-text: #94a3b8;
   --sidebar-text-active: #ffffff;
-  --sidebar-active-bg: rgba(37, 99, 235, 0.18);
 
-  /* Elevation & Shadows */
-  --shadow-sm: 0 2px 4px rgba(15, 23, 42, 0.04);
-  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.06);
-  --shadow-lg: 0 16px 36px rgba(15, 23, 42, 0.08);
-  --shadow-hover: 0 14px 32px rgba(15, 23, 42, 0.12);
+  /* Type, spacing, and motion */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --transition-fast: 150ms ease;
+  --transition-standard: 200ms ease;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.07);
+  --shadow-lg: 0 8px 20px rgba(15, 23, 42, 0.1);
 
   /* Radii */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
   --radius-full: 9999px;
 
-  /* Card Gradients */
-  --gradient-networth: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  --gradient-wallet: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
-  --gradient-savings: linear-gradient(135deg, #059669 0%, #047857 100%);
-  --gradient-investments: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+  --balance-card-bg: #155e75;
 
   --nav-bottom-offset: 86px;
 }
@@ -109,23 +115,18 @@ input[type="number"] {
   --warning-bg: rgba(251, 191, 36, 0.15);
 
   --accent-blue: #3b82f6;
-  --accent-indigo: #6366f1;
+  --accent-teal: #2dd4bf;
   --accent-cyan: #38bdf8;
 
   --sidebar-bg: #060a12;
   --sidebar-text: #94a3b8;
   --sidebar-text-active: #ffffff;
-  --sidebar-active-bg: rgba(59, 130, 246, 0.22);
 
-  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.65);
-  --shadow-hover: 0 20px 48px rgba(0, 0, 0, 0.75);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.18);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.22);
+  --shadow-lg: 0 8px 20px rgba(0, 0, 0, 0.28);
 
-  --gradient-networth: linear-gradient(135deg, #1e293b 0%, #090e17 100%);
-  --gradient-wallet: linear-gradient(135deg, #1e40af 0%, #172554 100%);
-  --gradient-savings: linear-gradient(135deg, #065f46 0%, #022c22 100%);
-  --gradient-investments: linear-gradient(135deg, #3730a3 0%, #1e1b4b 100%);
+  --balance-card-bg: #164e63;
 }
 
 /* --------------------------------------------------------------------------
@@ -138,7 +139,7 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-sans);
   background-color: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.5;
@@ -232,27 +233,23 @@ p {
   padding: 1.35rem 1.25rem;
   margin-bottom: 1rem;
   box-shadow: var(--shadow-sm);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: border-color 0.15s ease;
   position: relative;
 }
 
 .card:hover {
-  box-shadow: var(--shadow-md);
   border-color: var(--border-hover);
 }
 
 .clickable-card {
   cursor: pointer;
   user-select: none;
+  color: inherit;
+  text-decoration: none;
 }
 
 .clickable-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-hover);
-}
-
-.clickable-card:active {
-  transform: translateY(0);
+  border-color: var(--border-hover);
 }
 
 /* --------------------------------------------------------------------------
@@ -273,7 +270,7 @@ p {
   }
 
   .app-layout[data-page="investments"] {
-    --sidebar-page-accent: var(--accent-indigo);
+    --sidebar-page-accent: var(--accent-teal);
   }
 
   .app-layout[data-page="account"] {
@@ -367,20 +364,17 @@ p {
 
   .side-nav .nav-icon {
     font-size: 1.25rem;
-    transition: transform 0.2s ease;
   }
 
   .side-nav .nav-item:hover {
     color: #ffffff;
     background: rgba(255, 255, 255, 0.06);
-    transform: translateX(4px);
   }
 
   .side-nav .nav-item.active {
     color: #ffffff;
     background: color-mix(in srgb, var(--sidebar-page-accent) 22%, transparent);
     border: 1px solid color-mix(in srgb, var(--sidebar-page-accent) 42%, transparent);
-    box-shadow: 0 4px 18px color-mix(in srgb, var(--sidebar-page-accent) 25%, transparent);
   }
 
   .side-nav .nav-item.active .nav-icon {
@@ -415,15 +409,12 @@ p {
   right: 0;
   height: 68px;
   background: var(--card-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: space-around;
   align-items: center;
   padding: 0 0.5rem;
   z-index: 1000;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
 }
 
 .bottom-nav .nav-item {
@@ -436,17 +427,17 @@ p {
   color: var(--text-muted);
   font-size: 0.72rem;
   font-weight: 600;
+  text-decoration: none;
   cursor: pointer;
   padding: 0.4rem 0.6rem;
   border-radius: var(--radius-md);
-  transition: all 0.2s ease;
+  transition: color 0.15s ease, background-color 0.15s ease;
   flex: 1;
   gap: 0.25rem;
 }
 
 .bottom-nav .nav-item svg {
   font-size: 1.25rem;
-  transition: transform 0.2s ease;
 }
 
 .bottom-nav .nav-item:hover,
@@ -455,7 +446,6 @@ p {
 }
 
 .bottom-nav .nav-item.active svg {
-  transform: scale(1.15);
   color: var(--accent-blue);
 }
 
@@ -475,27 +465,12 @@ p {
   position: relative;
   overflow: hidden;
   border-radius: var(--radius-xl);
+  background: var(--balance-card-bg);
   padding: 1.75rem 1.5rem;
   color: #ffffff;
   box-shadow: var(--shadow-md);
   margin-bottom: 1.25rem;
   border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.home-networth-card {
-  background: var(--gradient-networth);
-}
-
-.wallet-balance-card {
-  background: var(--gradient-wallet);
-}
-
-.savings-balance-card {
-  background: var(--gradient-savings);
-}
-
-.investments-balance-card {
-  background: var(--gradient-investments);
 }
 
 .wallet-icon,
@@ -553,7 +528,6 @@ p {
 
 .balance-toggle-btn:hover {
   background: rgba(255, 255, 255, 0.25);
-  transform: scale(1.05);
 }
 
 .interest-box {
@@ -657,8 +631,8 @@ p {
 }
 
 .investments-summary-icon {
-  background: rgba(79, 70, 229, 0.1);
-  color: var(--accent-indigo);
+  background: rgba(15, 118, 110, 0.1);
+  color: var(--accent-teal);
 }
 
 .summary-card-tag {
@@ -771,19 +745,16 @@ p {
 
 .small-add-btn:hover {
   background: #1d4ed8;
-  transform: translateY(-1px);
 }
 
 .small-import-btn:hover {
   background: var(--surface-hover);
   border-color: var(--border-hover);
-  transform: translateY(-1px);
 }
 
 .small-import-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  transform: none;
 }
 
 /* --------------------------------------------------------------------------
@@ -792,7 +763,7 @@ p {
 .entries-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .entries-toolbar {
@@ -1038,8 +1009,7 @@ p {
 
 .fab:hover {
   background: #1d4ed8;
-  transform: scale(1.08) translateY(-2px);
-  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.45);
+  box-shadow: var(--shadow-md);
 }
 
 @media (min-width: 1024px) {
@@ -1083,7 +1053,7 @@ p {
 .form {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: var(--space-4);
 }
 
 .form-group {
@@ -1457,8 +1427,6 @@ p {
 
 .btn-primary:hover {
   background: #1d4ed8;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
 }
 
 .btn-secondary {
@@ -1470,7 +1438,6 @@ p {
 .btn-secondary:hover {
   background: var(--surface-hover);
   border-color: var(--border-hover);
-  transform: translateY(-1px);
 }
 
 .btn-danger {
@@ -1639,7 +1606,7 @@ p {
 }
 
 .rates-text {
-  font-family: monospace;
+  font-family: var(--font-mono);
   font-size: 0.82rem;
   color: var(--text-secondary);
   line-height: 1.4;
@@ -1664,6 +1631,8 @@ p {
   align-items: center;
   justify-content: center;
   padding: 2rem 1rem;
+  flex-direction: column;
+  gap: 1rem;
   background: var(--bg-primary);
 }
 
@@ -1682,11 +1651,9 @@ p {
 .auth-logo {
   font-size: 2.25rem;
   font-weight: 900;
-  background: linear-gradient(135deg, var(--money-green), var(--money-green-dark));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--accent-blue);
   margin-bottom: 0.4rem;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .auth-subtitle {
@@ -1705,7 +1672,7 @@ p {
   color: var(--danger);
   padding: 0.85rem 1rem;
   border-radius: var(--radius-md);
-  border-left: 4px solid var(--danger);
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
   font-size: 0.9rem;
   font-weight: 600;
 }
@@ -1741,6 +1708,80 @@ p {
   background: var(--surface-hover);
 }
 
+.legal-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.8rem 0;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.legal-links a,
+.legal-page a {
+  color: var(--accent-blue);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.legal-links a:hover,
+.legal-page a:hover {
+  color: var(--text-primary);
+}
+
+.legal-page {
+  width: min(100% - 2rem, 760px);
+  margin: 0 auto;
+  padding: 2rem 0 3rem;
+  color: var(--text-primary);
+}
+
+.legal-page-header {
+  margin-bottom: 1.5rem;
+}
+
+.legal-page-header h1 {
+  margin: 0.5rem 0;
+  font-size: 1.8rem;
+}
+
+.legal-page-header > p,
+.legal-page section p,
+.legal-page section li {
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.legal-draft-note {
+  margin: 1.25rem 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.legal-page section {
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.legal-page section h2 {
+  margin-bottom: 0.6rem;
+  font-size: 1.05rem;
+}
+
+.legal-page section p + p {
+  margin-top: 0.75rem;
+}
+
+.legal-page-footer {
+  padding-top: 1.25rem;
+  font-size: 0.9rem;
+}
+
 /* --------------------------------------------------------------------------
    14. PORTFOLIO IMPORT MODAL & DRAG OVERLAYS
    -------------------------------------------------------------------------- */
@@ -1748,8 +1789,6 @@ p {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   z-index: 2000;
   display: flex;
   align-items: center;
@@ -1776,7 +1815,6 @@ p {
 .page-drag-icon {
   font-size: 3.5rem;
   color: var(--accent-blue);
-  animation: bounce 1s infinite alternate;
 }
 
 /* Portfolio Modal Styles */
@@ -1784,8 +1822,6 @@ p {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1806,6 +1842,13 @@ p {
   flex-direction: column;
   overflow: hidden;
   animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (max-width: 640px) {
+  .legal-page {
+    width: min(100% - 1.5rem, 760px);
+    padding-top: 1.25rem;
+  }
 }
 
 .portfolio-modal-header {
@@ -2175,15 +2218,6 @@ p {
   }
 }
 
-@keyframes bounce {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    transform: translateY(-8px);
-  }
-}
-
 .spinning,
 .spin {
   animation: spin 1s linear infinite;
@@ -2195,5 +2229,27 @@ p {
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+
+.custom-toggle input:focus-visible + .toggle-slider,
+.custom-checkbox input:focus-visible + .checkmark {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

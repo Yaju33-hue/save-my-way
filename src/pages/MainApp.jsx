@@ -10,6 +10,7 @@ import AddSavingsEntry from "./AddSavingsEntry.jsx";
 import AddInvestmentEntry from "./AddInvestmentEntry.jsx";
 import BottomNav from "../components/BottomNav.jsx";
 import SideNav from "../components/SideNav.jsx";
+import LegalLinks from "../components/LegalLinks.jsx";
 
 
 export default function MainApp() {
@@ -39,6 +40,7 @@ export default function MainApp() {
             <Route path="/account" element={<Account />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          <LegalLinks />
         </main>
 
        {/* Mobile Bottom Nav (hidden on desktop via CSS) */}

@@ -294,7 +294,7 @@ export default function Investments() {
 
       {investmentEntries.length === 0 ? (
         <div className="empty-state wallet-empty">
-          <div className="empty-icon">🏦</div>
+          <FaUniversity className="empty-icon" aria-hidden="true" />
           <h3>No investments yet</h3>
           <p>Add your first stock purchase or drop an Excel spreadsheet/PDF portfolio to import.</p>
 

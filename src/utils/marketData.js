@@ -1,5 +1,6 @@
 const FINNHUB_API_KEY = import.meta.env.VITE_FINNHUB_API_KEY || "";
 const NGX_API_KEY = import.meta.env.VITE_NGX_PULSE_API_KEY || "";
+const NGX_API_BASE_URL = "https://koboterminal.com/api/ngxdata";
 
 const CACHE_KEY = "save-my-way-stock-price-cache";
 const US_TTL_MS = 90 * 1000;
@@ -175,7 +176,7 @@ const getNgxMarketStatus = async () => {
 
   try {
     const data = await enqueueNgxRequest(() =>
-      fetchJson("https://www.ngxpulse.ng/api/ngxdata/market-status", {
+      fetchJson(`${NGX_API_BASE_URL}/market-status`, {
         headers: getNgxHeaders(),
       }),
     );
@@ -208,7 +209,7 @@ const searchNgxStock = async (query) => {
     stockList = cachedStocks.stockList;
   } else {
     const response = await enqueueNgxRequest(() =>
-      fetchJson("https://www.ngxpulse.ng/api/ngxdata/stocks", {
+      fetchJson(`${NGX_API_BASE_URL}/stocks`, {
         headers: getNgxHeaders(),
       }),
     );
@@ -450,7 +451,7 @@ const getNgxStockPrice = async (symbol, { allowStale = true, force = false } = {
 
   try {
     const response = await enqueueNgxRequest(() =>
-      fetchJson(`https://www.ngxpulse.ng/api/ngxdata/prices/${encodeURIComponent(upperSymbol)}?days=2`, {
+      fetchJson(`${NGX_API_BASE_URL}/prices/${encodeURIComponent(upperSymbol)}?days=2`, {
         headers: getNgxHeaders(),
       }),
     );

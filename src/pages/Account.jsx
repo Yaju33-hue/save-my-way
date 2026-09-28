@@ -175,7 +175,7 @@ export default function Account() {
 
             <div className="rates-info-card">
               <div className="rates-header">
-                <span className="rates-title">Live Market Rates (USD Base)</span>
+                <span className="rates-title">Exchange Rate Reference (USD Base)</span>
                 <button
                   type="button"
                   className="rates-sync-btn"
@@ -188,6 +188,10 @@ export default function Account() {
               </div>
               <p className="rates-text">
                 $1 USD = ₦{rates.NGN?.toFixed(2)} NGN • €{rates.EUR?.toFixed(4)} EUR • £{rates.GBP?.toFixed(4)} GBP • ₵{rates.GHS?.toFixed(2)} GHS
+              </p>
+              <p className="rates-disclaimer">
+                NGN uses the app&apos;s configured reference rate. Other rates may
+                vary by provider and update time.
               </p>
             </div>
 

@@ -184,6 +184,7 @@ const scrollToBottom = () => {
         <form onSubmit={handleSubmit} className="form">
           <div className="floating-field">
             <input
+              id="wallet-entry-name"
               type="text"
               className="input floating-input"
               value={formData.name}
@@ -192,11 +193,12 @@ const scrollToBottom = () => {
               placeholder=" "
               required
             />
-            <label>Entry Name</label>
+            <label htmlFor="wallet-entry-name">Entry Name</label>
           </div>
 
           <div className="floating-field">
             <input
+              id="wallet-entry-amount"
               type="number"
               min="0"
               step="0.01"
@@ -211,7 +213,7 @@ const scrollToBottom = () => {
               placeholder=" "
               required
             />
-            <label>Amount</label>
+            <label htmlFor="wallet-entry-amount">Amount</label>
           </div>
 
           <div className="floating-field" ref={typeRef}>

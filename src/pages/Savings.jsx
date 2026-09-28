@@ -71,7 +71,7 @@ export default function Savings() {
 
       {savingsEntries.length === 0 ? (
         <div className="empty-state savings-empty">
-          <div className="empty-icon">🐷</div>
+          <FaPiggyBank className="empty-icon" aria-hidden="true" />
           <h3>No savings entries yet</h3>
           <p>Start saving and watch your money grow.</p>
 

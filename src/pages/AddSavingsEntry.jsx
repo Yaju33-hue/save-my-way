@@ -94,6 +94,7 @@ export default function AddSavingsEntry() {
         <form onSubmit={handleSubmit} className="form">
           <div className="floating-field">
             <input
+              id="savings-name"
               type="text"
               className="input floating-input"
               value={formData.name}
@@ -101,11 +102,12 @@ export default function AddSavingsEntry() {
               placeholder=" "
               required
             />
-            <label>Savings Name</label>
+            <label htmlFor="savings-name">Savings Name</label>
           </div>
 
           <div className="floating-field">
             <input
+              id="savings-amount"
               type="number"
               min="0"
               step="0.01"
@@ -117,11 +119,12 @@ export default function AddSavingsEntry() {
               placeholder=" "
               required
             />
-            <label>Amount</label>
+            <label htmlFor="savings-amount">Amount</label>
           </div>
 
           <div className="floating-field">
             <input
+              id="savings-interest-rate"
               type="number"
               min="0"
               step="0.01"
@@ -133,7 +136,7 @@ export default function AddSavingsEntry() {
               placeholder=" "
               required
             />
-            <label>Annual Interest Rate (%)</label>
+            <label htmlFor="savings-interest-rate">Annual Interest Rate (%)</label>
           </div>
 
           <button type="submit" className="btn btn-primary form-btn">

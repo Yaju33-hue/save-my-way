@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { signIn } from "../store/actions.js";
 import { useNavigate, useLocation } from "react-router-dom";
+import LegalLinks from "../components/LegalLinks.jsx";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -42,11 +43,12 @@ export default function SignIn() {
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
-          {error && <div className="auth-error">{error}</div>}
+          {error && <div className="auth-error" role="alert">{error}</div>}
 
           <div className="form-group">
-            <label className="label">Email Address</label>
+            <label className="label" htmlFor="signin-email">Email Address</label>
             <input
+              id="signin-email"
               type="email"
               className="input"
               value={email}
@@ -58,8 +60,9 @@ export default function SignIn() {
           </div>
 
           <div className="form-group">
-            <label className="label">Password</label>
+            <label className="label" htmlFor="signin-password">Password</label>
             <input
+              id="signin-password"
               type="password"
               className="input"
               value={password}
@@ -89,6 +92,7 @@ export default function SignIn() {
           </button>
         </div>
       </div>
+      <LegalLinks />
     </div>
   );
 }

@@ -29,7 +29,7 @@ export default function SideNav() {
       <div className="sidebar-brand">
         <img
           className="sidebar-logo-img"
-          src="/WhatsApp Image 2025-12-06 at 20.53.53_bec4e93d.jpg"
+          src={`${import.meta.env.BASE_URL}${encodeURIComponent("WhatsApp Image 2025-12-06 at 20.53.53_bec4e93d.jpg")}`}
           alt="SaveMyWay Logo"
         />
         <div className="sidebar-brand-text">
@@ -38,12 +38,13 @@ export default function SideNav() {
         </div>
       </div>
 
-      <nav className="side-nav-links">
+      <nav className="side-nav-links" aria-label="Main navigation">
         {navItems.map(({ path, label, icon: Icon }) => (
           <Link
             key={path}
             className={`nav-item ${isActive(path) ? "active" : ""}`}
             to={path}
+            aria-current={isActive(path) ? "page" : undefined}
           >
             <Icon className="nav-icon" />
             <span>{label}</span>

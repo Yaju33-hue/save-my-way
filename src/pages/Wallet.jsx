@@ -61,7 +61,7 @@ export default function Wallet() {
 
       {walletEntries.length === 0 ? (
         <div className="empty-state wallet-empty">
-          <div className="empty-icon">👛</div>
+          <FaWallet className="empty-icon" aria-hidden="true" />
           <h3>No wallet entries yet</h3>
           <p>Add your first income or expense to start tracking your money.</p>
 
