@@ -309,8 +309,25 @@ export const signIn = async (email, password) => {
   }
 
   const providedHash = await serializePassword(rawPassword);
-  if (matchedUser.passwordHash !== providedHash) {
+  const hasCurrentCredential = typeof matchedUser.passwordHash === "string";
+  const legacyPasswordMatches =
+    !hasCurrentCredential &&
+    typeof matchedUser.password === "string" &&
+    matchedUser.password === rawPassword.trim();
+
+  if (hasCurrentCredential && matchedUser.passwordHash !== providedHash) {
     return { ok: false, error: "Invalid email or password." };
+  }
+
+  if (!hasCurrentCredential && !legacyPasswordMatches) {
+    return { ok: false, error: "Invalid email or password." };
+  }
+
+  if (legacyPasswordMatches) {
+    matchedUser.passwordHash = providedHash;
+    delete matchedUser.password;
+    matchedUser.updatedAt = new Date().toISOString();
+    saveRegisteredUsers(users);
   }
 
   const session = createSessionRecord(matchedUser.id);

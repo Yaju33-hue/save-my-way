@@ -105,6 +105,33 @@ test("signUp rejects duplicate emails and stores a persistent account", async ()
   signOut();
 });
 
+test("legacy accounts sign in and migrate away from plaintext passwords", async () => {
+  setTestEnvironment();
+  const legacyUser = {
+    id: "legacy-user-id",
+    name: "Legacy User",
+    phone: "+123",
+    email: "subomiodekunle732@gmail.com",
+    password: "The beast12345",
+    createdAt: new Date().toISOString(),
+  };
+  localStorage.setItem("save_my_way_registered_users", JSON.stringify([legacyUser]));
+
+  const { signIn, getRegisteredUsers, signOut } = await import("./actions.js");
+  const wrongPassword = await signIn("subomiodekunle732@gmail.com", "wrong-password");
+  assert.equal(wrongPassword.ok, false);
+
+  const result = await signIn("SubomiOdekunle732@gmail.com", "The beast12345");
+  assert.equal(result.ok, true);
+
+  const [migratedUser] = getRegisteredUsers();
+  assert.equal(migratedUser.id, legacyUser.id);
+  assert.equal(migratedUser.password, undefined);
+  assert.equal(typeof migratedUser.passwordHash, "string");
+
+  signOut();
+});
+
 test("different accounts keep isolated data and sessions", async () => {
   setTestEnvironment();
   const { signUp, signIn, signOut, getSessionStorage, currentAuth } = await import("./actions.js");
