@@ -9,9 +9,27 @@ const DraftNotice = () => (
   </p>
 );
 
+const setLegalMetadata = (title, description) => {
+  document.title = title;
+  const robotsMeta = document.querySelector('meta[name="robots"]');
+  const descriptionMeta = document.createElement("meta");
+  descriptionMeta.name = "description";
+  descriptionMeta.content = description;
+  document.head.appendChild(descriptionMeta);
+  if (robotsMeta) robotsMeta.content = "index, follow";
+
+  return () => {
+    descriptionMeta.remove();
+    if (robotsMeta) robotsMeta.content = "noindex, nofollow";
+  };
+};
+
 export function PrivacyPolicy() {
   useEffect(() => {
-    document.title = "SaveMyWay — Privacy";
+    return setLegalMetadata(
+      "SaveMyWay — Privacy",
+      "Privacy information for the current SaveMyWay personal finance tracker.",
+    );
   }, []);
 
   return (
@@ -43,13 +61,13 @@ export function PrivacyPolicy() {
       <section>
         <h2>Credentials and security</h2>
         <p>
-          The current client attempts to derive a SHA-256 digest for passwords
-          and stores it in local storage. If the browser does not support Web
-          Crypto, the current fallback stores the password value directly. This
-          is client-side demonstration authentication, not a secure account
-          system. Anyone with access to this browser profile or its developer
-          tools may be able to access stored records. Do not use this version
-          for passwords or financial records that require confidentiality.
+          The current client derives an unsalted SHA-256 digest for passwords
+          with Web Crypto and stores it in local storage. Sign-up and sign-in
+          fail if Web Crypto is unavailable. This is client-side demonstration
+          authentication, not a secure account system. Anyone with access to
+          this browser profile or its developer tools may be able to access
+          stored records. Do not use this version for passwords or financial
+          records that require confidentiality.
         </p>
       </section>
 
@@ -90,7 +108,10 @@ export function PrivacyPolicy() {
 
 export function TermsOfService() {
   useEffect(() => {
-    document.title = "SaveMyWay — Terms";
+    return setLegalMetadata(
+      "SaveMyWay — Terms",
+      "Terms for using the current SaveMyWay personal finance tracker.",
+    );
   }, []);
 
   return (

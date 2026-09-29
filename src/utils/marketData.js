@@ -101,27 +101,76 @@ const getNgxAliasMatch = (query) => {
 let ngxQueue = Promise.resolve();
 let lastNgxRequestAt = 0;
 
-const enqueueNgxRequest = (request) => {
-  ngxQueue = ngxQueue.then(async () => {
-    const delay = Math.max(0, NGX_REQUEST_GAP_MS - (Date.now() - lastNgxRequestAt));
-    if (delay > 0) {
-      await new Promise((resolve) => setTimeout(resolve, delay));
+const createAbortError = () => {
+  const error = new Error("Request cancelled.");
+  error.name = "AbortError";
+  return error;
+};
+
+const waitForDelay = (delay, signal) =>
+  new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(createAbortError());
+      return;
     }
+
+    const timeout = setTimeout(() => {
+      signal?.removeEventListener("abort", cancel);
+      resolve();
+    }, delay);
+    const cancel = () => {
+      clearTimeout(timeout);
+      signal?.removeEventListener("abort", cancel);
+      reject(createAbortError());
+    };
+    signal?.addEventListener("abort", cancel, { once: true });
+  });
+
+const enqueueNgxRequest = (request, signal) => {
+  const queuedRequest = ngxQueue.catch(() => undefined).then(async () => {
+    if (signal?.aborted) throw createAbortError();
+    const delay = Math.max(0, NGX_REQUEST_GAP_MS - (Date.now() - lastNgxRequestAt));
+    if (delay > 0) await waitForDelay(delay, signal);
+    if (signal?.aborted) throw createAbortError();
     lastNgxRequestAt = Date.now();
     return request();
   });
 
-  return ngxQueue;
+  ngxQueue = queuedRequest.catch(() => undefined);
+  return queuedRequest;
 };
 
 const fetchJson = async (url, options = {}) => {
-  const response = await fetch(url, options);
-  if (!response.ok) {
-    const error = new Error(`Request failed with status ${response.status}`);
-    error.status = response.status;
+  const controller = new AbortController();
+  const callerSignal = options.signal;
+  const fetchOptions = { ...options };
+  delete fetchOptions.signal;
+  let timedOut = false;
+  const abortFromCaller = () => controller.abort();
+  if (callerSignal?.aborted) controller.abort();
+  else callerSignal?.addEventListener("abort", abortFromCaller, { once: true });
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, 12000);
+
+  try {
+    const response = await fetch(url, { ...fetchOptions, signal: controller.signal });
+    if (!response.ok) {
+      const error = new Error(`Request failed with status ${response.status}`);
+      error.status = response.status;
+      throw error;
+    }
+    return await response.json();
+  } catch (error) {
+    if (timedOut) {
+      throw new Error("Market data request timed out. Please try again.");
+    }
     throw error;
+  } finally {
+    clearTimeout(timeout);
+    callerSignal?.removeEventListener("abort", abortFromCaller);
   }
-  return response.json();
 };
 
 const getFinnhubUrl = (path, params) => {
@@ -162,7 +211,7 @@ export const isNgxMarketOpenNow = () => {
   return isWeekday && minutes >= 9 * 60 && minutes <= 16 * 60;
 };
 
-const getNgxMarketStatus = async () => {
+const getNgxMarketStatus = async (signal) => {
   const cachedStatus = getCachedPrice("MARKET_STATUS", "NGX", 2 * 60 * 1000);
   if (cachedStatus) return cachedStatus;
 
@@ -175,10 +224,13 @@ const getNgxMarketStatus = async () => {
   }
 
   try {
-    const data = await enqueueNgxRequest(() =>
-      fetchJson(`${NGX_API_BASE_URL}/market-status`, {
-        headers: getNgxHeaders(),
-      }),
+    const data = await enqueueNgxRequest(
+      () =>
+        fetchJson(`${NGX_API_BASE_URL}/market-status`, {
+          headers: getNgxHeaders(),
+          signal,
+        }),
+      signal,
     );
 
     return setCachedPrice("MARKET_STATUS", "NGX", {
@@ -196,7 +248,7 @@ const getNgxMarketStatus = async () => {
   }
 };
 
-const searchNgxStock = async (query) => {
+const searchNgxStock = async (query, signal) => {
   const aliasMatch = getNgxAliasMatch(query);
   if (aliasMatch) return aliasMatch;
   if (!NGX_API_KEY) return null;
@@ -208,10 +260,13 @@ const searchNgxStock = async (query) => {
   if (cachedStocks?.stockList) {
     stockList = cachedStocks.stockList;
   } else {
-    const response = await enqueueNgxRequest(() =>
-      fetchJson(`${NGX_API_BASE_URL}/stocks`, {
-        headers: getNgxHeaders(),
-      }),
+    const response = await enqueueNgxRequest(
+      () =>
+        fetchJson(`${NGX_API_BASE_URL}/stocks`, {
+          headers: getNgxHeaders(),
+          signal,
+        }),
+      signal,
     );
     stockList = Array.isArray(response?.stocks) ? response.stocks : [];
     setCachedPrice("STOCK_LIST", "NGX", { price: null, stockList, source: "ngx-pulse" });
@@ -286,11 +341,11 @@ const getPopularUsStockSuggestions = (query) => {
     }));
 };
 
-const searchFinnhubStocks = async (query) => {
+const searchFinnhubStocks = async (query, signal) => {
   if (!FINNHUB_API_KEY) return [];
 
   try {
-    const data = await fetchJson(getFinnhubUrl("search", { q: query }));
+    const data = await fetchJson(getFinnhubUrl("search", { q: query }), { signal });
     const seenSymbols = new Set();
     return (data.result || [])
       .filter((item) => item.type === "Common Stock" && item.symbol)
@@ -313,14 +368,20 @@ const searchFinnhubStocks = async (query) => {
   }
 };
 
-export const searchStockSuggestions = async (query) => {
+export const searchStockSuggestions = async (query, { signal } = {}) => {
   const normalizedQuery = normalize(query);
   if (normalizedQuery.length < 2) return [];
 
-  const ngxMatch = await searchNgxStock(query);
+  let ngxMatch = null;
+  try {
+    ngxMatch = await searchNgxStock(query, signal);
+  } catch {
+    // US symbol search remains available if the NGX provider is down.
+  }
   if (ngxMatch) return [ngxMatch];
 
-  const finnhubMatches = await searchFinnhubStocks(query);
+  if (signal?.aborted) return [];
+  const finnhubMatches = await searchFinnhubStocks(query, signal);
   if (finnhubMatches.length > 0) return finnhubMatches;
 
   const popularMatches = getPopularUsStockSuggestions(query);
@@ -340,14 +401,15 @@ export const searchStockSuggestions = async (query) => {
   return [];
 };
 
-export const searchStock = async (query) => {
-  const suggestions = await searchStockSuggestions(query);
+export const searchStock = async (query, options) => {
+  const suggestions = await searchStockSuggestions(query, options);
   return suggestions[0] || null;
 };
 
-const getYahooStockPrice = async (symbol) => {
+const getYahooStockPrice = async (symbol, signal) => {
   const data = await fetchJson(
-    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`,
+    { signal },
   );
   const meta = data?.chart?.result?.[0]?.meta;
   const price = Number(meta?.regularMarketPrice);
@@ -365,13 +427,13 @@ const getYahooStockPrice = async (symbol) => {
   };
 };
 
-const getUsStockPrice = async (symbol, { allowStale = true, force = false } = {}) => {
+const getUsStockPrice = async (symbol, { allowStale = true, force = false, signal } = {}) => {
   const fresh = getCachedPrice(symbol, "US", US_TTL_MS);
   if (fresh && !force) return fresh;
 
   if (FINNHUB_API_KEY) {
     try {
-      const data = await fetchJson(getFinnhubUrl("quote", { symbol }));
+      const data = await fetchJson(getFinnhubUrl("quote", { symbol }), { signal });
       const price = Number(data.c);
       if (Number.isFinite(price) && price > 0) {
         return setCachedPrice(symbol, "US", {
@@ -389,7 +451,7 @@ const getUsStockPrice = async (symbol, { allowStale = true, force = false } = {}
   }
 
   try {
-    const yahooData = await getYahooStockPrice(symbol);
+    const yahooData = await getYahooStockPrice(symbol, signal);
     return setCachedPrice(symbol, "US", yahooData);
   } catch (error) {
     const stale = allowStale ? getCachedPrice(symbol, "US") : null;
@@ -421,12 +483,12 @@ const DEFAULT_NGX_PRICES = {
   NB: 30.00,
 };
 
-const getNgxStockPrice = async (symbol, { allowStale = true, force = false } = {}) => {
+const getNgxStockPrice = async (symbol, { allowStale = true, force = false, signal } = {}) => {
   const upperSymbol = String(symbol || "").trim().toUpperCase();
   const fresh = getCachedPrice(upperSymbol, "NGX", NGX_TTL_MS);
   if (fresh && !force) return fresh;
 
-  const marketStatus = await getNgxMarketStatus();
+  const marketStatus = await getNgxMarketStatus(signal);
   const stale = allowStale ? getCachedPrice(upperSymbol, "NGX") : null;
 
   if (marketStatus.status !== "open" && stale && !force) {
@@ -450,10 +512,13 @@ const getNgxStockPrice = async (symbol, { allowStale = true, force = false } = {
   }
 
   try {
-    const response = await enqueueNgxRequest(() =>
-      fetchJson(`${NGX_API_BASE_URL}/prices/${encodeURIComponent(upperSymbol)}?days=2`, {
-        headers: getNgxHeaders(),
-      }),
+    const response = await enqueueNgxRequest(
+      () =>
+        fetchJson(`${NGX_API_BASE_URL}/prices/${encodeURIComponent(upperSymbol)}?days=2`, {
+          headers: getNgxHeaders(),
+          signal,
+        }),
+      signal,
     );
 
     const priceHistory = Array.isArray(response?.prices) ? response.prices : [];

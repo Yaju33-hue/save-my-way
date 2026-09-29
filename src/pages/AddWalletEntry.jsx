@@ -36,6 +36,7 @@ export default function AddWalletEntry() {
   const monthRef = useRef(null);
   const dayRef = useRef(null);
   const formRef = useRef(null);
+  const submitLockRef = useRef(false);
 
   const typeOptions = [
     { value: "incoming", label: "Incoming" },
@@ -156,6 +157,8 @@ const scrollToBottom = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
 
     const entryData = {
       ...formData,
@@ -165,6 +168,20 @@ const scrollToBottom = () => {
     id ? updateWalletEntry(id, entryData) : addWalletEntry(entryData);
     navigate("/wallet");
   };
+
+  if (id && !editingEntry) {
+    return (
+      <div className="container form-page">
+        <div className="card form-card">
+          <h2 className="form-title">Entry unavailable</h2>
+          <p>This entry may have been deleted or is not available in this account.</p>
+          <button type="button" className="btn btn-secondary" onClick={() => navigate("/wallet")}>
+            Back to Wallet
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
    <div className="container form-page" style={{ paddingBottom: "150px" }}>

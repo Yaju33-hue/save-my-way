@@ -25,7 +25,7 @@ Copy `.env.example` to `.env` to configure optional Finnhub and NGX market-data 
 
 The current app stores profile, session, settings, and finance records in browser `localStorage`. It has no server-side account system, cloud synchronization, account recovery, or remote backup. Sign-out does not erase locally stored records, and clearing site storage may permanently remove them.
 
-Password handling is client-side and should not be treated as production authentication. The current code uses an unsalted SHA-256 digest when Web Crypto is available and has a plaintext fallback otherwise. Do not use this version to protect credentials or sensitive financial records.
+Password handling is client-side and should not be treated as production authentication. The current code uses an unsalted SHA-256 digest and fails closed when Web Crypto is unavailable. Do not use this version to protect credentials or sensitive financial records.
 
 Portfolio spreadsheets and PDFs are parsed in the browser. Privacy and terms pages are drafts based on current source behavior; they need review by the app operator and qualified counsel before being treated as formal legal documents.
 

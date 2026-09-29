@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { signUp } from "../store/actions.js";
 import { useNavigate } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
@@ -13,6 +13,7 @@ export default function SignUp() {
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const submitLockRef = useRef(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,6 +22,8 @@ export default function SignUp() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
     setIsLoading(true);
     setError("");
 
@@ -28,12 +31,14 @@ export default function SignUp() {
 
     if (!name || !phone || !email || !password) {
       setError("Please fill in all fields");
+      submitLockRef.current = false;
       setIsLoading(false);
       return;
     }
 
     if (password.length < 6) {
       setError("Password must be at least 6 characters");
+      submitLockRef.current = false;
       setIsLoading(false);
       return;
     }
@@ -55,6 +60,7 @@ export default function SignUp() {
     } catch {
       setError("Sign up failed. Please try again.");
     } finally {
+      submitLockRef.current = false;
       setIsLoading(false);
     }
   };

@@ -21,6 +21,8 @@ import { formatCurrency, convertCurrency } from "../utils/currency.js";
 import { useReactor } from "sia-reactor/adapters/react";
 import { store } from "../store/index.js";
 
+const MAX_PORTFOLIO_FILE_BYTES = 25 * 1024 * 1024;
+
 export default function PortfolioImportModal({ isOpen, onClose, initialFile = null }) {
   const state = useReactor(store);
   const currentCurrency = state.ui.currency || "NGN";
@@ -34,6 +36,76 @@ export default function PortfolioImportModal({ isOpen, onClose, initialFile = nu
   const [quoteProgress, setQuoteProgress] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const fileInputRef = useRef(null);
+  const modalRef = useRef(null);
+  const parseRequestRef = useRef(0);
+  const quoteRequestRef = useRef(0);
+  const quoteRequestInFlightRef = useRef(false);
+  const importLockRef = useRef(false);
+  const importCloseTimerRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => () => {
+    parseRequestRef.current += 1;
+    quoteRequestRef.current += 1;
+    quoteRequestInFlightRef.current = false;
+    importLockRef.current = false;
+    if (importCloseTimerRef.current) clearTimeout(importCloseTimerRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const previousFocus = document.activeElement;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    modalRef.current?.querySelector(".portfolio-modal-close")?.focus();
+
+    const getFocusableElements = () =>
+      Array.from(
+        modalRef.current?.querySelectorAll(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) || [],
+      ).filter((element) => element.getClientRects().length > 0);
+
+    const handleModalKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+      const focusableElements = getFocusableElements();
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        modalRef.current?.focus();
+        return;
+      }
+
+      const first = focusableElements[0];
+      const last = focusableElements[focusableElements.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleModalKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleModalKeyDown);
+      document.body.style.overflow = previousBodyOverflow;
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) {
+        previousFocus.focus();
+      }
+    };
+  }, [isOpen]);
 
   // When modal opens or initialFile changes, process it
   useEffect(() => {
@@ -45,6 +117,12 @@ export default function PortfolioImportModal({ isOpen, onClose, initialFile = nu
   }, [isOpen, initialFile]);
 
   const resetState = () => {
+    parseRequestRef.current += 1;
+    quoteRequestRef.current += 1;
+    if (importCloseTimerRef.current) {
+      clearTimeout(importCloseTimerRef.current);
+      importCloseTimerRef.current = null;
+    }
     setFile(null);
     setIsDragging(false);
     setIsParsing(false);
@@ -57,19 +135,28 @@ export default function PortfolioImportModal({ isOpen, onClose, initialFile = nu
 
   const handleFileSelected = async (selectedFile) => {
     if (!selectedFile) return;
+    const requestId = ++parseRequestRef.current;
     setFile(selectedFile);
-    setIsParsing(true);
     setParsingError("");
     setSuccessMessage("");
+    if (selectedFile.size > MAX_PORTFOLIO_FILE_BYTES) {
+      setIsParsing(false);
+      setParsedEntries([]);
+      setParsingError("This file is larger than 25 MB. Choose a smaller portfolio file.");
+      return;
+    }
+    setIsParsing(true);
 
     try {
       const results = await parsePortfolioFile(selectedFile);
+      if (requestId !== parseRequestRef.current) return;
       setParsedEntries(results);
     } catch (err) {
+      if (requestId !== parseRequestRef.current) return;
       setParsingError(err.message || "Failed to parse portfolio file.");
       setParsedEntries([]);
     } finally {
-      setIsParsing(false);
+      if (requestId === parseRequestRef.current) setIsParsing(false);
     }
   };
 
@@ -96,9 +183,9 @@ export default function PortfolioImportModal({ isOpen, onClose, initialFile = nu
   };
 
   const handleFileInputChange = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      handleFileSelected(e.target.files[0]);
-    }
+    const selectedFile = e.target.files?.[0];
+    e.target.value = "";
+    if (selectedFile) handleFileSelected(selectedFile);
   };
 
   const toggleSelectAll = () => {
@@ -165,7 +252,13 @@ export default function PortfolioImportModal({ isOpen, onClose, initialFile = nu
   };
 
   const handleFetchLiveQuotes = async () => {
-    if (parsedEntries.length === 0) return;
+    if (
+      parsedEntries.length === 0 ||
+      isFetchingQuotes ||
+      quoteRequestInFlightRef.current
+    ) return;
+    quoteRequestInFlightRef.current = true;
+    const requestId = ++quoteRequestRef.current;
     setIsFetchingQuotes(true);
     setQuoteProgress("Starting market quotes lookup...");
 
@@ -173,25 +266,33 @@ export default function PortfolioImportModal({ isOpen, onClose, initialFile = nu
       const enriched = await enrichPortfolioPrices(
         parsedEntries,
         (current, total, stockName) => {
+          if (requestId !== quoteRequestRef.current) return;
           setQuoteProgress(`Fetching live price for ${stockName} (${current}/${total})...`);
         }
       );
+      if (requestId !== quoteRequestRef.current) return;
       setParsedEntries(enriched);
       setQuoteProgress("Live market prices updated!");
     } catch (err) {
+      if (requestId !== quoteRequestRef.current) return;
       setQuoteProgress(err.message || "Could not fetch all live prices.");
     } finally {
-      setIsFetchingQuotes(false);
-      setTimeout(() => setQuoteProgress(""), 4000);
+      if (requestId === quoteRequestRef.current) {
+        quoteRequestInFlightRef.current = false;
+        setIsFetchingQuotes(false);
+        setTimeout(() => setQuoteProgress(""), 4000);
+      }
     }
   };
 
   const handleImport = () => {
+    if (importLockRef.current) return;
     const selectedEntries = parsedEntries.filter((entry) => entry.selected);
     if (selectedEntries.length === 0) {
       alert("Please select at least one stock to import.");
       return;
     }
+    importLockRef.current = true;
 
     // Format clean entries for store
     const entriesToSave = selectedEntries.map((item) => ({
@@ -210,9 +311,10 @@ export default function PortfolioImportModal({ isOpen, onClose, initialFile = nu
     addMultipleInvestmentEntries(entriesToSave);
     setSuccessMessage(`Successfully imported ${entriesToSave.length} investments!`);
 
-    setTimeout(() => {
-      onClose();
+    importCloseTimerRef.current = setTimeout(() => {
+      importCloseTimerRef.current = null;
       resetState();
+      onCloseRef.current();
     }, 1200);
   };
 
@@ -241,9 +343,12 @@ export default function PortfolioImportModal({ isOpen, onClose, initialFile = nu
     <div className="portfolio-modal-overlay" onClick={onClose}>
       <div
         className="portfolio-modal-content"
+        ref={modalRef}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
+        aria-labelledby="portfolio-modal-title"
+        tabIndex={-1}
       >
         <div className="portfolio-modal-header">
           <div className="portfolio-modal-title-wrap">
@@ -251,7 +356,7 @@ export default function PortfolioImportModal({ isOpen, onClose, initialFile = nu
               <FaCloudUploadAlt />
             </div>
             <div>
-              <h3>Import Portfolio File</h3>
+              <h3 id="portfolio-modal-title">Import Portfolio File</h3>
               <p>Upload your Excel (.xlsx, .xls), CSV, or PDF brokerage statement</p>
             </div>
           </div>
@@ -271,10 +376,20 @@ export default function PortfolioImportModal({ isOpen, onClose, initialFile = nu
           {parsedEntries.length === 0 ? (
             <div
               className={`portfolio-dropzone ${isDragging ? "dragging" : ""}`}
+              role="group"
+              aria-label="Portfolio file upload"
+              tabIndex={0}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
+              onKeyDown={(event) => {
+                if (event.target !== event.currentTarget) return;
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
             >
               <input
                 ref={fileInputRef}
@@ -380,7 +495,7 @@ export default function PortfolioImportModal({ isOpen, onClose, initialFile = nu
               </div>
 
               {quoteProgress && (
-                <div className="quote-progress-notice">
+                <div className="quote-progress-notice" role="status" aria-live="polite">
                   <FaSyncAlt className={isFetchingQuotes ? "spinning" : ""} />
                   <span>{quoteProgress}</span>
                 </div>
@@ -577,14 +692,14 @@ export default function PortfolioImportModal({ isOpen, onClose, initialFile = nu
           )}
 
           {parsingError && (
-            <div className="import-error-banner">
+            <div className="import-error-banner" role="alert">
               <FaExclamationCircle />
               <span>{parsingError}</span>
             </div>
           )}
 
           {successMessage && (
-            <div className="import-success-banner">
+            <div className="import-success-banner" role="status">
               <FaCheck />
               <span>{successMessage}</span>
             </div>

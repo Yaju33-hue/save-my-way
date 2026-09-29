@@ -26,20 +26,22 @@ export default function MainApp() {
 
       <div className="main-content">
         <main className="container">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/wallet" element={<Wallet />} />
-            <Route path="/wallet/add" element={<AddWalletEntry />} />
-            <Route path="/wallet/edit/:id" element={<AddWalletEntry />} />
-            <Route path="/savings" element={<Savings />} />
-            <Route path="/savings/add" element={<AddSavingsEntry />} />
-            <Route path="/savings/edit/:id" element={<AddSavingsEntry />} />
-            <Route path="/investments" element={<Investments />} />
-            <Route path="/investments/add" element={<AddInvestmentEntry />} />
-            <Route path="/investments/edit/:id" element={<AddInvestmentEntry />} />
-            <Route path="/account" element={<Account />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <div key={location.pathname} className="route-transition">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/wallet" element={<Wallet />} />
+              <Route path="/wallet/add" element={<AddWalletEntry />} />
+              <Route path="/wallet/edit/:id" element={<AddWalletEntry />} />
+              <Route path="/savings" element={<Savings />} />
+              <Route path="/savings/add" element={<AddSavingsEntry />} />
+              <Route path="/savings/edit/:id" element={<AddSavingsEntry />} />
+              <Route path="/investments" element={<Investments />} />
+              <Route path="/investments/add" element={<AddInvestmentEntry />} />
+              <Route path="/investments/edit/:id" element={<AddInvestmentEntry />} />
+              <Route path="/account" element={<Account />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
           <LegalLinks />
         </main>
 

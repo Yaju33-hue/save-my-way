@@ -11,10 +11,18 @@ const STORAGE_KEYS = {
 
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
 
-const generateId = () =>
-  typeof crypto !== "undefined" && crypto.randomUUID
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const generateId = () => {
+  if (typeof crypto === "undefined") {
+    throw new Error("Secure ID generation is unavailable in this browser.");
+  }
+  if (crypto.randomUUID) return crypto.randomUUID();
+  if (crypto.getRandomValues) {
+    return Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("");
+  }
+  throw new Error("Secure ID generation is unavailable in this browser.");
+};
 
 const getStorage = () =>
   typeof localStorage !== "undefined" ? localStorage : null;
@@ -41,15 +49,17 @@ const normalizeEmail = (value) => String(value ?? "").trim().toLowerCase();
 const serializePassword = async (value) => {
   const raw = String(value ?? "");
 
-  if (typeof crypto !== "undefined" && crypto.subtle && crypto.subtle.digest) {
-    const bytes = new TextEncoder().encode(raw);
-    const hash = await crypto.subtle.digest("SHA-256", bytes);
-    return Array.from(new Uint8Array(hash))
-      .map((byte) => byte.toString(16).padStart(2, "0"))
-      .join("");
+  if (typeof crypto === "undefined" || !crypto.subtle?.digest) {
+    throw new Error(
+      "Secure password handling is unavailable. Use a modern browser over HTTPS and try again.",
+    );
   }
 
-  return raw;
+  const bytes = new TextEncoder().encode(raw);
+  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(hash))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 };
 
 const getRegisteredUsers = () => readJson(STORAGE_KEYS.users, []);
@@ -159,6 +169,15 @@ const loadUserData = (userId) => {
   store.ui.currency = userData.settings.currency || "NGN";
 };
 
+const clearLoadedUserData = () => {
+  fanout(store, "data.walletEntries", []);
+  fanout(store, "data.savingsEntries", []);
+  fanout(store, "data.investmentsEntries", []);
+  store.ui.theme = "light";
+  store.ui.hideBalance = false;
+  store.ui.currency = "NGN";
+};
+
 export const currentAuth = () => ({
   user: store.auth?.user || null,
   session: store.auth?.session || null,
@@ -177,6 +196,7 @@ export const initializeAuth = async () => {
     store.auth.authenticated = false;
     store.auth.loading = false;
     store.auth.status = "unauthenticated";
+    clearLoadedUserData();
     return { ok: false, error: "No active session." };
   }
 
@@ -194,6 +214,7 @@ export const initializeAuth = async () => {
     store.auth.authenticated = false;
     store.auth.loading = false;
     store.auth.status = "unauthenticated";
+    clearLoadedUserData();
     return { ok: false, error: "Session expired." };
   }
 
@@ -206,6 +227,7 @@ export const initializeAuth = async () => {
     store.auth.authenticated = false;
     store.auth.loading = false;
     store.auth.status = "unauthenticated";
+    clearLoadedUserData();
     return { ok: false, error: "User session is invalid." };
   }
 
@@ -254,18 +276,29 @@ export const signUp = async (userData) => {
     return { ok: false, error: "An account with this email already exists." };
   }
 
+  let passwordHash;
+  try {
+    passwordHash = await serializePassword(password);
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
+  const latestUsers = getRegisteredUsers();
+  if (latestUsers.some((entry) => normalizeEmail(entry.email) === email)) {
+    return { ok: false, error: "An account with this email already exists." };
+  }
+
   const newUser = {
     id: userData?.id || generateId(),
     name,
     phone,
     email,
-    passwordHash: await serializePassword(password),
+    passwordHash,
     createdAt: userData?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
 
-  users.push(newUser);
-  saveRegisteredUsers(users);
+  latestUsers.push(newUser);
+  saveRegisteredUsers(latestUsers);
 
   const userDataStore = getUserDataStore();
   userDataStore[newUser.id] = createDefaultUserData(newUser.id);
@@ -308,7 +341,12 @@ export const signIn = async (email, password) => {
     return { ok: false, error: "Invalid email or password." };
   }
 
-  const providedHash = await serializePassword(rawPassword);
+  let providedHash;
+  try {
+    providedHash = await serializePassword(rawPassword);
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
   const hasCurrentCredential = typeof matchedUser.passwordHash === "string";
   const legacyPasswordMatches =
     !hasCurrentCredential &&
@@ -366,12 +404,7 @@ export const signOut = () => {
   store.auth.status = "unauthenticated";
   store.auth.error = null;
 
-  fanout(store, "data.walletEntries", []);
-  fanout(store, "data.savingsEntries", []);
-  fanout(store, "data.investmentsEntries", []);
-  store.ui.theme = "light";
-  store.ui.hideBalance = false;
-  store.ui.currency = "NGN";
+  clearLoadedUserData();
 
   return { ok: true };
 };

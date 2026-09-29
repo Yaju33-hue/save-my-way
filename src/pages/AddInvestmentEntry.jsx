@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { lazy, Suspense, useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useReactor } from "sia-reactor/adapters/react";
 import { store } from "../store/index.js";
 import { addInvestmentEntry, updateInvestmentEntry } from "../store/actions.js";
 import { getStockPrice, searchStockSuggestions } from "../utils/marketData.js";
-import PortfolioImportModal from "../components/PortfolioImportModal.jsx";
 import { FaArrowLeft, FaCloudUploadAlt } from "react-icons/fa";
+
+const PortfolioImportModal = lazy(() => import("../components/PortfolioImportModal.jsx"));
 
 export default function AddInvestmentEntry() {
   const state = useReactor(store);
@@ -35,6 +36,9 @@ export default function AddInvestmentEntry() {
   const stockFieldRef = useRef(null);
   const selectedStockNameRef = useRef("");
   const stockLookupRequestRef = useRef(0);
+  const stockSearchControllerRef = useRef(null);
+  const stockQuoteControllerRef = useRef(null);
+  const submitLockRef = useRef(false);
 
   useEffect(() => {
     document.title = id ? "SaveMyWay — Edit Investment" : "SaveMyWay — Add Investment";
@@ -85,13 +89,15 @@ export default function AddInvestmentEntry() {
     }
 
     let cancelled = false;
+    const controller = new AbortController();
+    stockSearchControllerRef.current = controller;
     const lookup = setTimeout(async () => {
       setIsSearchingStocks(true);
       setPriceLookupStatus("Searching stocks...");
       setPriceLookupError("");
 
       try {
-        const results = await searchStockSuggestions(query);
+        const results = await searchStockSuggestions(query, { signal: controller.signal });
         if (cancelled) return;
 
         setStockSuggestions(results);
@@ -115,11 +121,20 @@ export default function AddInvestmentEntry() {
     return () => {
       cancelled = true;
       clearTimeout(lookup);
+      controller.abort();
     };
   }, [formData.name]);
 
+  useEffect(() => () => {
+    stockLookupRequestRef.current += 1;
+    stockSearchControllerRef.current?.abort();
+    stockQuoteControllerRef.current?.abort();
+  }, []);
+
   const handleStockNameChange = (name) => {
     stockLookupRequestRef.current += 1;
+    stockSearchControllerRef.current?.abort();
+    stockQuoteControllerRef.current?.abort();
     selectedStockNameRef.current = "";
     setMatchedStock(null);
     setStockSuggestions([]);
@@ -139,6 +154,8 @@ export default function AddInvestmentEntry() {
   };
 
   const handleSelectStock = async (stock) => {
+    stockSearchControllerRef.current?.abort();
+    stockQuoteControllerRef.current?.abort();
     selectedStockNameRef.current = stock.name;
     setStockSuggestions([]);
     setIsStockSuggestionsOpen(false);
@@ -156,8 +173,13 @@ export default function AddInvestmentEntry() {
     }));
 
     const requestId = ++stockLookupRequestRef.current;
+    const controller = new AbortController();
+    stockQuoteControllerRef.current = controller;
     try {
-      const quote = await getStockPrice(stock.symbol, stock.market, { force: true });
+      const quote = await getStockPrice(stock.symbol, stock.market, {
+        force: true,
+        signal: controller.signal,
+      });
       if (requestId !== stockLookupRequestRef.current) return;
 
       setFormData((prev) => ({
@@ -204,6 +226,8 @@ export default function AddInvestmentEntry() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
 
     const entryData = {
       ...formData,
@@ -215,6 +239,20 @@ export default function AddInvestmentEntry() {
     id ? updateInvestmentEntry(id, entryData) : addInvestmentEntry(entryData);
     navigate("/investments");
   };
+
+  if (id && !editingEntry) {
+    return (
+      <div className="container form-page">
+        <div className="card form-card">
+          <h2 className="form-title">Investment unavailable</h2>
+          <p>This entry may have been deleted or is not available in this account.</p>
+          <button type="button" className="btn btn-secondary" onClick={() => navigate("/investments")}>
+            Back to Investments
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container form-page">
@@ -364,10 +402,20 @@ export default function AddInvestmentEntry() {
         </form>
       </div>
 
-      <PortfolioImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-      />
+      {isImportModalOpen && (
+        <Suspense
+          fallback={
+            <div className="portfolio-modal-loading" role="status">
+              Loading portfolio tools...
+            </div>
+          }
+        >
+          <PortfolioImportModal
+            isOpen={isImportModalOpen}
+            onClose={() => setIsImportModalOpen(false)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { signIn } from "../store/actions.js";
 import { useNavigate, useLocation } from "react-router-dom";
 import LegalLinks from "../components/LegalLinks.jsx";
@@ -8,6 +8,7 @@ export default function SignIn() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const submitLockRef = useRef(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -17,6 +18,8 @@ export default function SignIn() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
     setIsLoading(true);
     setError("");
 
@@ -30,6 +33,7 @@ export default function SignIn() {
     } catch {
       setError("Sign in failed. Please try again.");
     } finally {
+      submitLockRef.current = false;
       setIsLoading(false);
     }
   };

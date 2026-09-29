@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useReactor } from "sia-reactor/adapters/react";
 import { store } from "../store/index.js";
@@ -18,6 +18,7 @@ export default function AddSavingsEntry() {
     amount: "",
     interestRate: "",
   });
+  const submitLockRef = useRef(false);
 
   useEffect(() => {
     document.title = id ? "SaveMyWay — Edit Savings" : "SaveMyWay — Add Savings";
@@ -63,6 +64,8 @@ export default function AddSavingsEntry() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
 
     const entryData = {
       ...formData,
@@ -73,6 +76,20 @@ export default function AddSavingsEntry() {
     id ? updateSavingsEntry(id, entryData) : addSavingsEntry(entryData);
     navigate("/savings");
   };
+
+  if (id && !editingEntry) {
+    return (
+      <div className="container form-page">
+        <div className="card form-card">
+          <h2 className="form-title">Entry unavailable</h2>
+          <p>This entry may have been deleted or is not available in this account.</p>
+          <button type="button" className="btn btn-secondary" onClick={() => navigate("/savings")}>
+            Back to Savings
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container form-page">

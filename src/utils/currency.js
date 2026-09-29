@@ -52,6 +52,9 @@ export function setCustomExchangeRate(currency, rate) {
 }
 
 export async function fetchLiveExchangeRates() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+
   try {
     // Check if user locked in a custom/broker rate
     const cached =
@@ -65,7 +68,9 @@ export async function fetchLiveExchangeRates() {
       }
     }
 
-    const response = await fetch("https://open.er-api.com/v6/latest/USD");
+    const response = await fetch("https://open.er-api.com/v6/latest/USD", {
+      signal: controller.signal,
+    });
     if (!response.ok) return liveRates;
     const data = await response.json();
     if (data && data.result === "success" && data.rates) {
@@ -90,6 +95,8 @@ export async function fetchLiveExchangeRates() {
     }
   } catch (error) {
     console.warn("Could not fetch live exchange rates, using cached/default rates.", error);
+  } finally {
+    clearTimeout(timeout);
   }
   return liveRates;
 }

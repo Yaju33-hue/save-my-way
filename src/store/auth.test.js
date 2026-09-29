@@ -105,6 +105,43 @@ test("signUp rejects duplicate emails and stores a persistent account", async ()
   signOut();
 });
 
+test("concurrent sign-ups for one email create only one account", async () => {
+  setTestEnvironment();
+  const { signUp, getRegisteredUsers } = await import("./actions.js");
+  const account = {
+    name: "Concurrent User",
+    phone: "+123",
+    email: "same@example.com",
+    password: "secret123",
+  };
+
+  const results = await Promise.all([signUp(account), signUp(account)]);
+
+  assert.equal(results.filter((result) => result.ok).length, 1);
+  assert.equal(getRegisteredUsers().length, 1);
+});
+
+test("sign-up fails closed when Web Crypto is unavailable", async () => {
+  setTestEnvironment();
+  Object.defineProperty(globalThis, "crypto", {
+    value: { randomUUID: () => "test-id" },
+    configurable: true,
+    writable: true,
+  });
+  const { signUp, getRegisteredUsers } = await import("./actions.js");
+
+  const result = await signUp({
+    name: "No Crypto User",
+    phone: "+123",
+    email: "no-crypto@example.com",
+    password: "secret123",
+  });
+
+  assert.equal(result.ok, false);
+  assert.match(result.error, /Secure password handling is unavailable/);
+  assert.equal(getRegisteredUsers().length, 0);
+});
+
 test("legacy accounts sign in and migrate away from plaintext passwords", async () => {
   setTestEnvironment();
   const legacyUser = {
@@ -163,4 +200,103 @@ test("different accounts keep isolated data and sessions", async () => {
   assert.equal(sessionB.ok, true);
   assert.equal(currentAuth().user.email, "b@example.com");
   assert.equal(getSessionStorage().length >= 1, true);
+});
+
+test("initializeAuth restores the active session and its local data", async () => {
+  setTestEnvironment();
+  const { signUp, initializeAuth, addWalletEntry, signOut, currentAuth } = await import("./actions.js");
+  const { store } = await import("./index.js");
+  const result = await signUp({
+    name: "Session User",
+    phone: "+123",
+    email: "session@example.com",
+    password: "secret123",
+  });
+  addWalletEntry({ name: "Saved entry", amount: 42, type: "incoming" });
+  const savedToken = localStorage.getItem("save_my_way_active_session");
+
+  store.auth.user = null;
+  store.auth.session = null;
+  store.auth.isAuthenticated = false;
+  store.auth.authenticated = false;
+  store.auth.loading = true;
+  store.data.walletEntries = [];
+
+  const restored = await initializeAuth();
+
+  assert.equal(restored.ok, true);
+  assert.equal(currentAuth().user.id, result.user.id);
+  assert.equal(currentAuth().session.token, savedToken);
+  assert.equal(store.data.walletEntries[0].name, "Saved entry");
+  signOut();
+});
+
+test("expired sessions are removed and do not authenticate", async () => {
+  setTestEnvironment();
+  const { signUp, initializeAuth, getSessionStorage, currentAuth } = await import("./actions.js");
+  await signUp({
+    name: "Expired User",
+    phone: "+123",
+    email: "expired@example.com",
+    password: "secret123",
+  });
+
+  const sessions = JSON.parse(localStorage.getItem("save_my_way_sessions"));
+  sessions[0].expiresAt = new Date(Date.now() - 1000).toISOString();
+  localStorage.setItem("save_my_way_sessions", JSON.stringify(sessions));
+
+  const result = await initializeAuth();
+
+  assert.equal(result.ok, false);
+  assert.equal(currentAuth().isAuthenticated, false);
+  assert.equal(localStorage.getItem("save_my_way_active_session"), null);
+  assert.equal(getSessionStorage().length, 0);
+});
+
+test("initializing without an active session clears in-memory private data", async () => {
+  setTestEnvironment();
+  const { signUp, initializeAuth, addWalletEntry } = await import("./actions.js");
+  const { store } = await import("./index.js");
+  await signUp({
+    name: "Previous User",
+    phone: "+123",
+    email: "previous@example.com",
+    password: "secret123",
+  });
+  addWalletEntry({ name: "Private entry", amount: 18, type: "incoming" });
+  localStorage.removeItem("save_my_way_active_session");
+
+  const result = await initializeAuth();
+
+  assert.equal(result.ok, false);
+  assert.equal(store.data.walletEntries.length, 0);
+  assert.equal(store.data.savingsEntries.length, 0);
+  assert.equal(store.data.investmentsEntries.length, 0);
+});
+
+test("signing out and into another account loads only that account's data", async () => {
+  setTestEnvironment();
+  const { signUp, signOut, addWalletEntry } = await import("./actions.js");
+  const { store } = await import("./index.js");
+
+  const userA = await signUp({
+    name: "Account A",
+    phone: "+111",
+    email: "isolated-a@example.com",
+    password: "abc123",
+  });
+  addWalletEntry({ name: "A private entry", amount: 1, type: "incoming" });
+  signOut();
+
+  await signUp({
+    name: "Account B",
+    phone: "+222",
+    email: "isolated-b@example.com",
+    password: "def456",
+  });
+
+  assert.equal(store.data.walletEntries.length, 0);
+  const savedData = JSON.parse(localStorage.getItem("save_my_way_user_data"));
+  assert.equal(savedData[userA.user.id].walletEntries[0].name, "A private entry");
+  signOut();
 });

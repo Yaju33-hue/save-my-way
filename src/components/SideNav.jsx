@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   FaHome,
@@ -18,11 +18,41 @@ const navItems = [
 
 export default function SideNav() {
   const location = useLocation();
+  const navRef = useRef(null);
+  const [activeIndicator, setActiveIndicator] = useState(null);
 
   const isActive = (path) => {
     if (path === "/") return location.pathname === "/";
     return location.pathname.startsWith(path);
   };
+
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    const activeLink = nav?.querySelector(".nav-item.active");
+    if (!nav || !activeLink) return undefined;
+
+    const updateIndicator = () => {
+      const navRect = nav.getBoundingClientRect();
+      const linkRect = activeLink.getBoundingClientRect();
+      setActiveIndicator({
+        offset: linkRect.top - navRect.top,
+        height: linkRect.height,
+      });
+    };
+
+    updateIndicator();
+    window.addEventListener("resize", updateIndicator);
+    const observer = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(updateIndicator);
+    observer?.observe(nav);
+    observer?.observe(activeLink);
+
+    return () => {
+      window.removeEventListener("resize", updateIndicator);
+      observer?.disconnect();
+    };
+  }, [location.pathname]);
 
   return (
     <aside className="side-nav">
@@ -38,7 +68,17 @@ export default function SideNav() {
         </div>
       </div>
 
-      <nav className="side-nav-links" aria-label="Main navigation">
+      <nav className="side-nav-links" aria-label="Main navigation" ref={navRef}>
+        {activeIndicator && (
+          <span
+            className="side-nav-active-indicator"
+            aria-hidden="true"
+            style={{
+              height: `${activeIndicator.height}px`,
+              transform: `translateY(${activeIndicator.offset}px)`,
+            }}
+          />
+        )}
         {navItems.map(({ path, label, icon: Icon }) => (
           <Link
             key={path}

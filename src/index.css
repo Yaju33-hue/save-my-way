@@ -205,6 +205,15 @@ p {
   align-items: center;
 }
 
+.session-loading {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
 .container {
   max-width: 540px;
   width: 100%;
@@ -223,7 +232,11 @@ p {
 .form-page {
   width: 100%;
   padding-bottom: var(--nav-bottom-offset);
-  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.route-transition {
+  width: 100%;
+  animation: routeSlideIn 250ms cubic-bezier(0.2, 0.75, 0.25, 1);
 }
 
 .card {
@@ -343,13 +356,29 @@ p {
   }
 
   .side-nav-links {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 0.9rem;
     flex: 1;
   }
 
+  .side-nav-active-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 0;
+    border: 1px solid color-mix(in srgb, var(--sidebar-page-accent) 42%, transparent);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--sidebar-page-accent) 22%, transparent);
+    pointer-events: none;
+    transition: transform 480ms cubic-bezier(0.2, 0.75, 0.25, 1), height 220ms ease;
+  }
+
   .side-nav .nav-item {
+    position: relative;
+    z-index: 1;
     display: flex;
     align-items: center;
     gap: 1rem;
@@ -373,8 +402,7 @@ p {
 
   .side-nav .nav-item.active {
     color: #ffffff;
-    background: color-mix(in srgb, var(--sidebar-page-accent) 22%, transparent);
-    border: 1px solid color-mix(in srgb, var(--sidebar-page-accent) 42%, transparent);
+    border: 1px solid transparent;
   }
 
   .side-nav .nav-item.active .nav-icon {
@@ -1830,6 +1858,19 @@ p {
   animation: fadeIn 0.2s ease;
 }
 
+.portfolio-modal-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: rgba(15, 23, 42, 0.55);
+  color: #ffffff;
+  font-weight: 600;
+  text-align: center;
+}
+
 .portfolio-modal-content {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
@@ -2204,6 +2245,17 @@ p {
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes routeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 

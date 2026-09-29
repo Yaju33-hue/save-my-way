@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useReactor, useSelector } from "sia-reactor/adapters/react";
 import { store } from "../store/index.js";
 import {
@@ -15,7 +15,6 @@ import { confirmDeleteAction } from "../utils/confirmDialog.js";
 import { getStockPrice } from "../utils/marketData.js";
 import InvestmentCard from "../components/InvestmentCard.jsx";
 import CurrencyFormatter from "../components/CurrencyFormatter.jsx";
-import PortfolioImportModal from "../components/PortfolioImportModal.jsx";
 import {
   FaPlus,
   FaUniversity,
@@ -26,6 +25,8 @@ import {
   FaSyncAlt,
 } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
+
+const PortfolioImportModal = lazy(() => import("../components/PortfolioImportModal.jsx"));
 
 export default function Investments() {
   const state = useReactor(store);
@@ -70,6 +71,7 @@ export default function Investments() {
     .join("|");
   const investmentEntriesRef = useRef(investmentEntries);
   const dragCounterRef = useRef(0);
+  const priceRefreshInFlightRef = useRef(false);
 
   useEffect(() => {
     investmentEntriesRef.current = investmentEntries;
@@ -126,46 +128,49 @@ export default function Investments() {
   };
 
   const refreshPrices = async (force = false) => {
+    if (priceRefreshInFlightRef.current) return;
     const trackedEntries = investmentEntriesRef.current.filter(
       (entry) => entry.symbol && entry.market,
     );
     if (trackedEntries.length === 0) return;
 
+    priceRefreshInFlightRef.current = true;
     setIsRefreshingPrices(true);
 
-    for (const entry of trackedEntries) {
-      // If entry came from an imported file and this is just an auto/mount refresh,
-      // preserve the user's exact spreadsheet prices unless they clicked "Refresh" explicitly
-      if (!force && (entry.priceSource === "file" || entry.priceSource === "import")) {
-        continue;
-      }
-
-      try {
-        const quote = await getStockPrice(entry.symbol, entry.market, { force });
-
-        // Never overwrite a valid existing price with a static reference index fallback
-        if (
-          quote.source === "reference-index" &&
-          entry.currentPrice &&
-          Number(entry.currentPrice) > 0
-        ) {
+    try {
+      for (const entry of trackedEntries) {
+        // Preserve imported prices during automatic refreshes unless explicitly requested.
+        if (!force && (entry.priceSource === "file" || entry.priceSource === "import")) {
           continue;
         }
 
-        updateInvestmentEntry(entry.id, {
-          currentPrice: quote.price,
-          priceUpdatedAt: quote.updatedAt,
-          priceSource: quote.source,
-          priceError: quote.error || "",
-        });
-      } catch (error) {
-        updateInvestmentEntry(entry.id, {
-          priceError: error.message || "Price refresh failed",
-        });
-      }
-    }
+        try {
+          const quote = await getStockPrice(entry.symbol, entry.market, { force });
 
-    setIsRefreshingPrices(false);
+          if (
+            quote.source === "reference-index" &&
+            entry.currentPrice &&
+            Number(entry.currentPrice) > 0
+          ) {
+            continue;
+          }
+
+          updateInvestmentEntry(entry.id, {
+            currentPrice: quote.price,
+            priceUpdatedAt: quote.updatedAt,
+            priceSource: quote.source,
+            priceError: quote.error || "",
+          });
+        } catch (error) {
+          updateInvestmentEntry(entry.id, {
+            priceError: error.message || "Price refresh failed",
+          });
+        }
+      }
+    } finally {
+      priceRefreshInFlightRef.current = false;
+      setIsRefreshingPrices(false);
+    }
   };
 
   useEffect(() => {
@@ -353,14 +358,24 @@ export default function Investments() {
       </Link>
 
       {/* Import Modal */}
-      <PortfolioImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => {
-          setIsImportModalOpen(false);
-          setDroppedFile(null);
-        }}
-        initialFile={droppedFile}
-      />
+      {isImportModalOpen && (
+        <Suspense
+          fallback={
+            <div className="portfolio-modal-loading" role="status">
+              Loading portfolio tools...
+            </div>
+          }
+        >
+          <PortfolioImportModal
+            isOpen={isImportModalOpen}
+            onClose={() => {
+              setIsImportModalOpen(false);
+              setDroppedFile(null);
+            }}
+            initialFile={droppedFile}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
