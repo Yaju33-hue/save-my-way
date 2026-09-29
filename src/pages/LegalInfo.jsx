@@ -45,9 +45,9 @@ export function PrivacyPolicy() {
         <h2>Information stored on your device</h2>
         <p>
           The current version stores account details, a credential value, session
-          records, finance entries, and app settings in this browser&apos;s local
+          records, finance entries, profile images, and app settings in this browser&apos;s local
           storage. Finance entries can include wallet activity, savings amounts,
-            investment holdings, and related prices. This data is not synced to a
+          investment holdings, and related prices. This data is not synced to a
           SaveMyWay server by the app code reviewed for this draft.
         </p>
         <p>

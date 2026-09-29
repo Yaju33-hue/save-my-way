@@ -39,8 +39,9 @@ const readJson = (key, fallback) => {
 const writeJson = (key, value) => {
   try {
     getStorage()?.setItem(key, JSON.stringify(value));
+    return true;
   } catch {
-    // Ignore storage quota errors.
+    return false;
   }
 };
 
@@ -112,6 +113,8 @@ const createDefaultUserData = (userId) => ({
     theme: "light",
     hideBalance: false,
     currency: "NGN",
+    profileImage: "",
+    profileImagePosition: { x: 50, y: 50 },
   },
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
@@ -135,7 +138,7 @@ export const getUserDataById = (userId) => {
 
 const persistUserData = () => {
   const userId = store.auth?.user?.id;
-  if (!userId) return;
+  if (!userId) return false;
 
   const userDataStore = getUserDataStore();
   userDataStore[userId] = {
@@ -147,11 +150,13 @@ const persistUserData = () => {
       theme: store.ui.theme || "light",
       hideBalance: Boolean(store.ui.hideBalance),
       currency: store.ui.currency || "NGN",
+      profileImage: store.ui.profileImage || "",
+      profileImagePosition: store.ui.profileImagePosition || { x: 50, y: 50 },
     },
     updatedAt: new Date().toISOString(),
   };
 
-  saveUserDataStore(userDataStore);
+  return saveUserDataStore(userDataStore);
 };
 
 const loadUserData = (userId) => {
@@ -167,6 +172,8 @@ const loadUserData = (userId) => {
   store.ui.theme = userData.settings.theme || "light";
   store.ui.hideBalance = Boolean(userData.settings.hideBalance);
   store.ui.currency = userData.settings.currency || "NGN";
+  store.ui.profileImage = userData.settings.profileImage || "";
+  store.ui.profileImagePosition = userData.settings.profileImagePosition || { x: 50, y: 50 };
 };
 
 const clearLoadedUserData = () => {
@@ -176,6 +183,8 @@ const clearLoadedUserData = () => {
   store.ui.theme = "light";
   store.ui.hideBalance = false;
   store.ui.currency = "NGN";
+  store.ui.profileImage = "";
+  store.ui.profileImagePosition = { x: 50, y: 50 };
 };
 
 export const currentAuth = () => ({
@@ -422,6 +431,27 @@ export const toggleTheme = () => {
 export const toggleHideBalance = () => {
   store.ui.hideBalance = !store.ui.hideBalance;
   persistUserData();
+};
+
+export const updateProfileImage = (profileImage, profileImagePosition = store.ui.profileImagePosition) => {
+  if (
+    typeof profileImage !== "string" ||
+    (profileImage && !/^data:image\/jpeg;base64,/.test(profileImage))
+  ) {
+    return false;
+  }
+
+  const previousImage = store.ui.profileImage || "";
+  const previousPosition = store.ui.profileImagePosition || { x: 50, y: 50 };
+  store.ui.profileImage = profileImage;
+  store.ui.profileImagePosition = profileImage
+    ? profileImagePosition
+    : { x: 50, y: 50 };
+  if (persistUserData()) return true;
+
+  store.ui.profileImage = previousImage;
+  store.ui.profileImagePosition = previousPosition;
+  return false;
 };
 
 export const updateCurrency = (newCurrency) => {

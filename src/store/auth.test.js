@@ -276,7 +276,7 @@ test("initializing without an active session clears in-memory private data", asy
 
 test("signing out and into another account loads only that account's data", async () => {
   setTestEnvironment();
-  const { signUp, signOut, addWalletEntry } = await import("./actions.js");
+  const { signUp, signIn, signOut, addWalletEntry, updateProfileImage } = await import("./actions.js");
   const { store } = await import("./index.js");
 
   const userA = await signUp({
@@ -286,6 +286,7 @@ test("signing out and into another account loads only that account's data", asyn
     password: "abc123",
   });
   addWalletEntry({ name: "A private entry", amount: 1, type: "incoming" });
+  assert.equal(updateProfileImage("data:image/jpeg;base64,dXNlckEtYXZhdGFy="), true);
   signOut();
 
   await signUp({
@@ -296,7 +297,13 @@ test("signing out and into another account loads only that account's data", asyn
   });
 
   assert.equal(store.data.walletEntries.length, 0);
+  assert.equal(store.ui.profileImage, "");
   const savedData = JSON.parse(localStorage.getItem("save_my_way_user_data"));
   assert.equal(savedData[userA.user.id].walletEntries[0].name, "A private entry");
+  assert.match(savedData[userA.user.id].settings.profileImage, /^data:image\/jpeg;base64,/);
+  signOut();
+
+  await signIn("isolated-a@example.com", "abc123");
+  assert.match(store.ui.profileImage, /^data:image\/jpeg;base64,/);
   signOut();
 });
