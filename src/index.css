@@ -82,6 +82,11 @@ input[type="number"] {
   --radius-lg: 14px;
   --radius-xl: 18px;
   --radius-full: 9999px;
+  --avatar-xs: clamp(24px, 6vw, 28px);
+  --avatar-sm: 36px;
+  --avatar-md: 48px;
+  --avatar-lg: clamp(72px, 20vw, 84px);
+  --avatar-xl: 128px;
 
   --balance-card-bg: #155e75;
 
@@ -441,6 +446,10 @@ p {
     max-width: 760px;
     padding-bottom: 3rem;
   }
+
+  .account-page {
+    max-width: 680px;
+  }
 }
 
 /* Bottom Navigation (Mobile) */
@@ -523,9 +532,10 @@ p {
 }
 
 .profile-avatar {
-  width: 28px;
-  height: 28px;
+  width: var(--avatar-md);
+  height: var(--avatar-md);
   flex: 0 0 auto;
+  aspect-ratio: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -543,13 +553,28 @@ p {
   object-fit: cover;
 }
 
-.profile-avatar-large {
-  width: clamp(76px, 22vw, 96px);
-  height: clamp(76px, 22vw, 96px);
+.profile-avatar-xs {
+  width: var(--avatar-xs);
+  height: var(--avatar-xs);
+}
+
+.profile-avatar-sm {
+  width: var(--avatar-sm);
+  height: var(--avatar-sm);
+}
+
+.profile-avatar-lg {
+  width: var(--avatar-lg);
+  height: var(--avatar-lg);
   border-width: 2px;
 }
 
-.profile-avatar-large svg {
+.profile-avatar-xl {
+  width: var(--avatar-xl);
+  height: var(--avatar-xl);
+}
+
+.profile-avatar-lg svg {
   width: 38%;
   height: 38%;
 }

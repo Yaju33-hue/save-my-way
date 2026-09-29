@@ -7,6 +7,7 @@ import {
   FaUniversity,
   FaUser,
 } from "react-icons/fa";
+import ProfileAvatar from "./ProfileAvatar.jsx";
 
 const navItems = [
   { path: "/", label: "Home", icon: FaHome },
@@ -86,7 +87,11 @@ export default function SideNav() {
             to={path}
             aria-current={isActive(path) ? "page" : undefined}
           >
-            <Icon className="nav-icon" />
+            {path === "/account" ? (
+              <ProfileAvatar className="profile-avatar-sm" />
+            ) : (
+              <Icon className="nav-icon" />
+            )}
             <span>{label}</span>
           </Link>
         ))}

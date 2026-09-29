@@ -23,8 +23,8 @@ export default function Account() {
   const theme = state.ui.theme;
   const currency = state.ui.currency;
   const hideBalance = state.ui.hideBalance;
-  const profileImage = state.ui.profileImage || "";
-  const profileImagePosition = state.ui.profileImagePosition || { x: 50, y: 50 };
+  const profileImage = user?.profileImage || "";
+  const profileImagePosition = user?.profileImagePosition || { x: 50, y: 50 };
   const profileImagePositionX = profileImagePosition.x;
   const profileImagePositionY = profileImagePosition.y;
   const navigate = useNavigate();
@@ -133,9 +133,10 @@ export default function Account() {
 
         <div className="profile-photo-editor">
           <ProfileAvatar
-            className="profile-avatar-large"
+            className="profile-avatar-lg"
             imageOverride={profileImageCandidate || undefined}
             positionOverride={profileImagePositionDraft}
+            accessibleLabel={`${profileImageCandidate ? "Preview" : "Current"} profile photo for ${user?.name || "your account"}`}
           />
           <div className="profile-photo-controls">
             <input

@@ -8,7 +8,7 @@ const navItems = [
   { path: "/wallet", label: "Wallet", icon: FaWallet },
   { path: "/savings", label: "Savings", icon: FaPiggyBank },
   { path: "/investments", label: "Investments", icon: FaUniversity },
-  { path: "/account", label: "Account", icon: FaUser },
+  { path: "/account", label: "My Stuff", icon: FaUser },
 ];
 
 export default function BottomNav() {
@@ -71,7 +71,7 @@ export default function BottomNav() {
           to={path}
           aria-current={isActive(path) ? "page" : undefined}
         >
-          {path === "/account" ? <ProfileAvatar /> : <Icon />}
+          {path === "/account" ? <ProfileAvatar className="profile-avatar-xs" /> : <Icon />}
           <span>{label}</span>
         </Link>
       ))}

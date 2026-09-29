@@ -7,10 +7,11 @@ export default function ProfileAvatar({
   className = "",
   imageOverride,
   positionOverride,
+  accessibleLabel,
 }) {
   const state = useReactor(store);
-  const image = imageOverride ?? state.ui.profileImage;
-  const position = positionOverride ?? state.ui.profileImagePosition ?? { x: 50, y: 50 };
+  const image = imageOverride ?? state.auth.user?.profileImage ?? "";
+  const position = positionOverride ?? state.auth.user?.profileImagePosition ?? { x: 50, y: 50 };
   const [imageFailed, setImageFailed] = useState(false);
 
   useEffect(() => {
@@ -18,7 +19,12 @@ export default function ProfileAvatar({
   }, [image]);
 
   return (
-    <span className={`profile-avatar ${className}`} aria-hidden="true">
+    <span
+      className={`profile-avatar ${className}`}
+      aria-hidden={accessibleLabel ? undefined : "true"}
+      role={accessibleLabel ? "img" : undefined}
+      aria-label={accessibleLabel}
+    >
       {image && !imageFailed ? (
         <img
           src={image}

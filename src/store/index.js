@@ -5,8 +5,6 @@ const defaultUiState = {
   theme: "light",
   hideBalance: false,
   currency: "NGN",
-  profileImage: "",
-  profileImagePosition: { x: 50, y: 50 },
 };
 
 const initialState = {

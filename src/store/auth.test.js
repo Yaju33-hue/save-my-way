@@ -286,7 +286,10 @@ test("signing out and into another account loads only that account's data", asyn
     password: "abc123",
   });
   addWalletEntry({ name: "A private entry", amount: 1, type: "incoming" });
-  assert.equal(updateProfileImage("data:image/jpeg;base64,dXNlckEtYXZhdGFy="), true);
+  assert.equal(
+    updateProfileImage("data:image/jpeg;base64,dXNlckEtYXZhdGFy=", { x: 68, y: 42 }),
+    true,
+  );
   signOut();
 
   await signUp({
@@ -297,13 +300,67 @@ test("signing out and into another account loads only that account's data", asyn
   });
 
   assert.equal(store.data.walletEntries.length, 0);
-  assert.equal(store.ui.profileImage, "");
+  assert.equal(store.auth.user.profileImage, "");
   const savedData = JSON.parse(localStorage.getItem("save_my_way_user_data"));
   assert.equal(savedData[userA.user.id].walletEntries[0].name, "A private entry");
-  assert.match(savedData[userA.user.id].settings.profileImage, /^data:image\/jpeg;base64,/);
+  assert.match(savedData[userA.user.id].profileImage, /^data:image\/jpeg;base64,/);
+  assert.deepEqual(savedData[userA.user.id].profileImagePosition, { x: 68, y: 42 });
   signOut();
 
   await signIn("isolated-a@example.com", "abc123");
-  assert.match(store.ui.profileImage, /^data:image\/jpeg;base64,/);
+  assert.match(store.auth.user.profileImage, /^data:image\/jpeg;base64,/);
+  assert.deepEqual(store.auth.user.profileImagePosition, { x: 68, y: 42 });
+  signOut();
+});
+
+test("legacy settings-based avatars migrate into the account profile", async () => {
+  setTestEnvironment();
+  const { initializeAuth, updateProfileImage, signOut } = await import("./actions.js");
+  const { store } = await import("./index.js");
+  const userId = "legacy-avatar-user";
+  const token = "legacy-avatar-session";
+  const legacyImage = "data:image/jpeg;base64,bGVnYWN5LWF2YXRhcg==";
+  const legacyPosition = { x: 62, y: 38 };
+  const now = new Date().toISOString();
+  localStorage.setItem("save_my_way_registered_users", JSON.stringify([{
+    id: userId,
+    name: "Legacy Avatar",
+    email: "legacy-avatar@example.com",
+    createdAt: now,
+  }]));
+  localStorage.setItem("save_my_way_sessions", JSON.stringify([{
+    id: "legacy-avatar-session-id",
+    token,
+    userId,
+    createdAt: now,
+    expiresAt: new Date(Date.now() + 3600000).toISOString(),
+  }]));
+  localStorage.setItem("save_my_way_active_session", token);
+  localStorage.setItem("save_my_way_user_data", JSON.stringify({
+    [userId]: {
+      id: userId,
+      walletEntries: [],
+      savingsEntries: [],
+      investmentsEntries: [],
+      settings: {
+        theme: "light",
+        hideBalance: false,
+        currency: "NGN",
+        profileImage: legacyImage,
+        profileImagePosition: legacyPosition,
+      },
+    },
+  }));
+
+  const restored = await initializeAuth();
+
+  assert.equal(restored.ok, true);
+  assert.equal(store.auth.user.profileImage, legacyImage);
+  assert.deepEqual(store.auth.user.profileImagePosition, legacyPosition);
+  assert.equal(updateProfileImage(legacyImage, legacyPosition), true);
+  const savedData = JSON.parse(localStorage.getItem("save_my_way_user_data"));
+  assert.equal(savedData[userId].profileImage, legacyImage);
+  assert.deepEqual(savedData[userId].profileImagePosition, legacyPosition);
+  assert.equal(savedData[userId].settings.profileImage, undefined);
   signOut();
 });
