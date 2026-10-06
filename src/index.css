@@ -52,7 +52,7 @@ input[type="number"] {
   --warning-bg: rgba(245, 158, 11, 0.1);
 
   --accent-blue: #2563eb;
-  --accent-teal: #0f766e;
+  --accent-purple: #500f76dede;
   --accent-cyan: #06b6d4;
 
   --sidebar-bg: #0f172a;
@@ -124,7 +124,7 @@ input[type="number"] {
   --warning-bg: rgba(251, 191, 36, 0.15);
 
   --accent-blue: #3b82f6;
-  --accent-teal: #2dd4bf;
+  --accent-purple: #500f76de;
   --accent-cyan: #38bdf8;
 
   --sidebar-bg: #060a12;
@@ -300,7 +300,7 @@ p {
   }
 
   .app-layout[data-page="investments"] {
-    --sidebar-page-accent: var(--accent-teal);
+    --sidebar-page-accent: var(--accent-purple);
   }
 
   .app-layout[data-page="account"] {
@@ -761,8 +761,8 @@ p {
 }
 
 .investments-summary-icon {
-  background: rgba(15, 118, 110, 0.1);
-  color: var(--accent-teal);
+  background: rgba(101, 15, 118, 0.283);
+  color: var(--accent-purple);
 }
 
 .summary-card-tag {
@@ -1628,24 +1628,153 @@ p {
   gap: 0.5rem;
 }
 
-.profile-crop-controls {
-  display: grid;
-  grid-template-columns: minmax(88px, auto) minmax(80px, 1fr);
-  align-items: center;
-  gap: 0.35rem 0.65rem;
-  color: var(--text-secondary);
-  font-size: 0.82rem;
-}
-
-.profile-crop-controls input[type="range"] {
-  width: 100%;
-  accent-color: var(--accent-blue);
-}
-
 .profile-image-error {
   color: var(--danger);
   font-size: 0.82rem;
   overflow-wrap: anywhere;
+}
+
+.profile-crop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding:
+    max(12px, env(safe-area-inset-top, 0px))
+    max(12px, env(safe-area-inset-right, 0px))
+    max(12px, env(safe-area-inset-bottom, 0px))
+    max(12px, env(safe-area-inset-left, 0px));
+  background: rgba(8, 15, 28, 0.74);
+}
+
+.profile-crop-dialog {
+  display: flex;
+  width: min(100%, 480px);
+  max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 24px);
+  flex-direction: column;
+  gap: 0.8rem;
+  overflow-y: auto;
+  padding: clamp(1rem, 4vw, 1.5rem);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background: var(--card-bg);
+  box-shadow: var(--shadow-lg);
+}
+
+.profile-crop-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.profile-crop-header h2 {
+  font-size: 1.2rem;
+}
+
+.profile-crop-close {
+  display: inline-grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.profile-crop-help {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.profile-crop-frame {
+  position: relative;
+  width: min(100%, 360px, max(180px, calc(100dvh - 400px)));
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+  align-self: center;
+  overflow: hidden;
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-md);
+  background: #101827;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.profile-crop-frame:active {
+  cursor: grabbing;
+}
+
+.profile-crop-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none;
+  pointer-events: none;
+  user-select: none;
+}
+
+.profile-crop-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+}
+
+.profile-crop-zoom {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.profile-crop-zoom input[type="range"] {
+  width: 100%;
+  min-width: 0;
+  accent-color: var(--accent-blue);
+}
+
+.profile-crop-reset {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-blue);
+  font: inherit;
+  cursor: pointer;
+}
+
+.profile-crop-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.profile-crop-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  padding-top: 0.25rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
 }
 
 .section-title {
@@ -1690,11 +1819,6 @@ p {
   .profile-photo-editor {
     align-items: start;
     gap: 0.75rem;
-  }
-
-  .profile-crop-controls {
-    grid-template-columns: 1fr;
-    gap: 0.2rem;
   }
 
   .account-summary-grid {

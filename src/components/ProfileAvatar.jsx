@@ -5,13 +5,10 @@ import { FaUser } from "react-icons/fa";
 
 export default function ProfileAvatar({
   className = "",
-  imageOverride,
-  positionOverride,
   accessibleLabel,
 }) {
   const state = useReactor(store);
-  const image = imageOverride ?? state.auth.user?.profileImage ?? "";
-  const position = positionOverride ?? state.auth.user?.profileImagePosition ?? { x: 50, y: 50 };
+  const image = state.auth.user?.profileImage || "";
   const [imageFailed, setImageFailed] = useState(false);
 
   useEffect(() => {
@@ -30,7 +27,6 @@ export default function ProfileAvatar({
           src={image}
           alt=""
           onError={() => setImageFailed(true)}
-          style={{ objectPosition: `${position.x}% ${position.y}%` }}
         />
       ) : (
         <FaUser />

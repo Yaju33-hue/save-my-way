@@ -6,76 +6,82 @@ const ACCEPTED_IMAGE_TYPES = new Set([
 ]);
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_IMAGE_PIXELS = 40_000_000;
-const MAX_IMAGE_EDGE = 512;
+export const PROFILE_AVATAR_OUTPUT_SIZE = 512;
 
-const loadImageSource = async (file) => {
-  if (typeof createImageBitmap === "function") {
-    const bitmap = await createImageBitmap(file);
-    return {
-      source: bitmap,
-      width: bitmap.width,
-      height: bitmap.height,
-      release: () => bitmap.close(),
-    };
-  }
-
-  const objectUrl = URL.createObjectURL(file);
-  try {
-    const image = await new Promise((resolve, reject) => {
-      const element = new Image();
-      element.onload = () => resolve(element);
-      element.onerror = () => reject(new Error("This image could not be opened."));
-      element.src = objectUrl;
-    });
-    return {
-      source: image,
-      width: image.naturalWidth,
-      height: image.naturalHeight,
-      release: () => URL.revokeObjectURL(objectUrl),
-    };
-  } catch (error) {
-    URL.revokeObjectURL(objectUrl);
-    throw error;
-  }
-};
-
-export const prepareProfileImage = async (file) => {
+export const validateProfileImageFile = (file) => {
   if (!file || !ACCEPTED_IMAGE_TYPES.has(file.type)) {
     throw new Error("Choose a JPEG, PNG, WebP, or GIF image.");
   }
   if (file.size > MAX_FILE_BYTES) {
     throw new Error("Choose an image smaller than 8 MB.");
   }
+};
 
-  let decoded;
-  try {
-    decoded = await loadImageSource(file);
-  } catch {
-    throw new Error("This image could not be opened. Choose another image file.");
+export const createSquareProfileImage = (image, crop) => {
+  const { x, y, size } = crop;
+  if (
+    !image?.naturalWidth ||
+    !image?.naturalHeight ||
+    !Number.isFinite(x) ||
+    !Number.isFinite(y) ||
+    !Number.isFinite(size) ||
+    size <= 0
+  ) {
+    throw new Error("This image crop is not valid. Please reset the crop and try again.");
   }
 
-  try {
-    const { width, height } = decoded;
-    if (
-      !width ||
-      !height ||
-      width * height > MAX_IMAGE_PIXELS
-    ) {
-      throw new Error("This image has unsupported dimensions. Choose a smaller image.");
-    }
+  const sourceX = Math.max(0, Math.min(image.naturalWidth - size, x));
+  const sourceY = Math.max(0, Math.min(image.naturalHeight - size, y));
+  const canvas = document.createElement("canvas");
+  canvas.width = PROFILE_AVATAR_OUTPUT_SIZE;
+  canvas.height = PROFILE_AVATAR_OUTPUT_SIZE;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Image processing is unavailable in this browser.");
 
-    const scale = Math.min(1, MAX_IMAGE_EDGE / Math.max(width, height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(width * scale));
-    canvas.height = Math.max(1, Math.round(height * scale));
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("Image processing is unavailable in this browser.");
+  context.drawImage(
+    image,
+    sourceX,
+    sourceY,
+    size,
+    size,
+    0,
+    0,
+    PROFILE_AVATAR_OUTPUT_SIZE,
+    PROFILE_AVATAR_OUTPUT_SIZE,
+  );
+  return canvas.toDataURL("image/jpeg", 0.9);
+};
 
-    context.fillStyle = "#ffffff";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(decoded.source, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL("image/jpeg", 0.84);
-  } finally {
-    decoded.release();
+export const migrateLegacyProfileImage = async (source, position) => {
+  if (
+    typeof document === "undefined" ||
+    typeof source !== "string" ||
+    !source.startsWith("data:image/")
+  ) {
+    return source || "";
   }
+
+  const image = new Image();
+  await new Promise((resolve, reject) => {
+    image.onload = resolve;
+    image.onerror = () => reject(new Error("The saved profile image could not be opened."));
+    image.src = source;
+  });
+
+  const size = Math.min(image.naturalWidth, image.naturalHeight);
+  if (!size || image.naturalWidth * image.naturalHeight > MAX_IMAGE_PIXELS) {
+    throw new Error("The saved profile image has unsupported dimensions.");
+  }
+
+  if (image.naturalWidth === image.naturalHeight && size <= PROFILE_AVATAR_OUTPUT_SIZE) {
+    return source;
+  }
+
+  const horizontal = Math.max(0, Math.min(100, Number(position?.x) || 50)) / 100;
+  const vertical = Math.max(0, Math.min(100, Number(position?.y) || 50)) / 100;
+  return createSquareProfileImage(image, {
+    x: (image.naturalWidth - size) * horizontal,
+    y: (image.naturalHeight - size) * vertical,
+    size,
+  });
 };

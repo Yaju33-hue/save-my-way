@@ -13,8 +13,9 @@ import { selectWalletTotal, selectSavingsTotal, selectInvestmentsTotal } from ".
 import { getExchangeRates } from "../utils/currency.js";
 import CurrencyFormatter from "../components/CurrencyFormatter.jsx";
 import ProfileAvatar from "../components/ProfileAvatar.jsx";
-import { prepareProfileImage } from "../utils/profileImage.js";
-import { FaSignOutAlt, FaCog, FaSyncAlt, FaCamera, FaTrash, FaCheck, FaTimes } from "react-icons/fa";
+import ProfileImageCropDialog from "../components/ProfileImageCropDialog.jsx";
+import { validateProfileImageFile } from "../utils/profileImage.js";
+import { FaSignOutAlt, FaCog, FaSyncAlt, FaCamera, FaTrash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 export default function Account() {
@@ -24,9 +25,6 @@ export default function Account() {
   const currency = state.ui.currency;
   const hideBalance = state.ui.hideBalance;
   const profileImage = user?.profileImage || "";
-  const profileImagePosition = user?.profileImagePosition || { x: 50, y: 50 };
-  const profileImagePositionX = profileImagePosition.x;
-  const profileImagePositionY = profileImagePosition.y;
   const navigate = useNavigate();
   const walletTotal = useSelector(store, selectWalletTotal);
   const savingsTotal = useSelector(store, selectSavingsTotal);
@@ -35,10 +33,8 @@ export default function Account() {
   const [showSettings, setShowSettings] = useState(false);
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [profileImageCandidate, setProfileImageCandidate] = useState("");
-  const [profileImagePositionDraft, setProfileImagePositionDraft] = useState(profileImagePosition);
+  const [profileImageFile, setProfileImageFile] = useState(null);
   const [profileImageError, setProfileImageError] = useState("");
-  const [isSavingProfileImage, setIsSavingProfileImage] = useState(false);
 
   const currencyRef = useRef(null);
   const profileImageInputRef = useRef(null);
@@ -49,13 +45,6 @@ export default function Account() {
   useEffect(() => {
     document.title = "SaveMyWay — Account";
   }, []);
-
-  useEffect(() => {
-    setProfileImagePositionDraft({
-      x: profileImagePositionX,
-      y: profileImagePositionY,
-    });
-  }, [profileImagePositionX, profileImagePositionY]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -81,34 +70,30 @@ export default function Account() {
     setTimeout(() => setSyncing(false), 500);
   };
 
-  const handleProfileImageChange = async (event) => {
+  const handleProfileImageChange = (event) => {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = "";
     if (!file) return;
 
     setProfileImageError("");
     try {
-      const preparedImage = await prepareProfileImage(file);
-      setProfileImageCandidate(preparedImage);
-      setProfileImagePositionDraft(profileImagePosition);
+      validateProfileImageFile(file);
+      setProfileImageFile(file);
     } catch (error) {
       setProfileImageError(error.message || "This image could not be used.");
     }
   };
 
-  const handleSaveProfileImage = () => {
-    setIsSavingProfileImage(true);
-    const nextImage = profileImageCandidate || profileImage;
-    const saved = updateProfileImage(nextImage, profileImagePositionDraft);
-    setIsSavingProfileImage(false);
-
+  const handleSaveProfileImage = (croppedImage) => {
+    const saved = updateProfileImage(croppedImage);
     if (!saved) {
       setProfileImageError("The photo could not be saved. Free some browser storage and try again.");
-      return;
+      return false;
     }
 
-    setProfileImageCandidate("");
+    setProfileImageFile(null);
     setProfileImageError("");
+    return true;
   };
 
   const handleRemoveProfileImage = () => {
@@ -117,14 +102,9 @@ export default function Account() {
       setProfileImageError("The photo could not be removed. Please try again.");
       return;
     }
-    setProfileImageCandidate("");
-    setProfileImagePositionDraft({ x: 50, y: 50 });
+    setProfileImageFile(null);
     setProfileImageError("");
   };
-
-  const cropHasChanged =
-    profileImagePositionDraft.x !== profileImagePosition.x ||
-    profileImagePositionDraft.y !== profileImagePosition.y;
 
   return (
     <div className="account-page">
@@ -134,9 +114,7 @@ export default function Account() {
         <div className="profile-photo-editor">
           <ProfileAvatar
             className="profile-avatar-lg"
-            imageOverride={profileImageCandidate || undefined}
-            positionOverride={profileImagePositionDraft}
-            accessibleLabel={`${profileImageCandidate ? "Preview" : "Current"} profile photo for ${user?.name || "your account"}`}
+            accessibleLabel={`Profile photo for ${user?.name || "your account"}`}
           />
           <div className="profile-photo-controls">
             <input
@@ -156,7 +134,7 @@ export default function Account() {
                 <FaCamera />
                 {profileImage ? "Change photo" : "Choose photo"}
               </button>
-              {profileImage && !profileImageCandidate && (
+              {profileImage && (
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
@@ -168,65 +146,6 @@ export default function Account() {
               )}
             </div>
 
-            {(profileImage || profileImageCandidate) && (
-              <div className="profile-crop-controls">
-                <label htmlFor="profile-crop-x">Horizontal framing</label>
-                <input
-                  id="profile-crop-x"
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={profileImagePositionDraft.x}
-                  onChange={(event) =>
-                    setProfileImagePositionDraft((position) => ({
-                      ...position,
-                      x: Number(event.target.value),
-                    }))
-                  }
-                />
-                <label htmlFor="profile-crop-y">Vertical framing</label>
-                <input
-                  id="profile-crop-y"
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={profileImagePositionDraft.y}
-                  onChange={(event) =>
-                    setProfileImagePositionDraft((position) => ({
-                      ...position,
-                      y: Number(event.target.value),
-                    }))
-                  }
-                />
-              </div>
-            )}
-
-            {(profileImageCandidate || cropHasChanged) && (
-              <div className="profile-photo-actions">
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  onClick={handleSaveProfileImage}
-                  disabled={isSavingProfileImage}
-                >
-                  <FaCheck />
-                  {profileImageCandidate ? "Use photo" : "Save framing"}
-                </button>
-                {profileImageCandidate && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => {
-                      setProfileImageCandidate("");
-                      setProfileImagePositionDraft(profileImagePosition);
-                    }}
-                  >
-                    <FaTimes />
-                    Cancel
-                  </button>
-                )}
-              </div>
-            )}
             {profileImageError && (
               <p className="profile-image-error" role="alert">{profileImageError}</p>
             )}
@@ -398,6 +317,13 @@ export default function Account() {
           Logout
         </button>
       </div>
+      {profileImageFile && (
+        <ProfileImageCropDialog
+          file={profileImageFile}
+          onCancel={() => setProfileImageFile(null)}
+          onSave={handleSaveProfileImage}
+        />
+      )}
     </div>
   );
 }

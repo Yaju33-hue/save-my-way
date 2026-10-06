@@ -286,10 +286,7 @@ test("signing out and into another account loads only that account's data", asyn
     password: "abc123",
   });
   addWalletEntry({ name: "A private entry", amount: 1, type: "incoming" });
-  assert.equal(
-    updateProfileImage("data:image/jpeg;base64,dXNlckEtYXZhdGFy=", { x: 68, y: 42 }),
-    true,
-  );
+  assert.equal(updateProfileImage("data:image/jpeg;base64,dXNlckEtYXZhdGFy="), true);
   signOut();
 
   await signUp({
@@ -304,12 +301,12 @@ test("signing out and into another account loads only that account's data", asyn
   const savedData = JSON.parse(localStorage.getItem("save_my_way_user_data"));
   assert.equal(savedData[userA.user.id].walletEntries[0].name, "A private entry");
   assert.match(savedData[userA.user.id].profileImage, /^data:image\/jpeg;base64,/);
-  assert.deepEqual(savedData[userA.user.id].profileImagePosition, { x: 68, y: 42 });
+  assert.equal(savedData[userA.user.id].profileImagePosition, undefined);
   signOut();
 
   await signIn("isolated-a@example.com", "abc123");
   assert.match(store.auth.user.profileImage, /^data:image\/jpeg;base64,/);
-  assert.deepEqual(store.auth.user.profileImagePosition, { x: 68, y: 42 });
+  assert.equal(store.auth.user.profileImagePosition, undefined);
   signOut();
 });
 
@@ -356,11 +353,12 @@ test("legacy settings-based avatars migrate into the account profile", async () 
 
   assert.equal(restored.ok, true);
   assert.equal(store.auth.user.profileImage, legacyImage);
-  assert.deepEqual(store.auth.user.profileImagePosition, legacyPosition);
-  assert.equal(updateProfileImage(legacyImage, legacyPosition), true);
+  assert.equal(store.auth.user.profileImagePosition, undefined);
+  assert.equal(updateProfileImage(legacyImage), true);
   const savedData = JSON.parse(localStorage.getItem("save_my_way_user_data"));
   assert.equal(savedData[userId].profileImage, legacyImage);
-  assert.deepEqual(savedData[userId].profileImagePosition, legacyPosition);
+  assert.equal(savedData[userId].profileImagePosition, undefined);
   assert.equal(savedData[userId].settings.profileImage, undefined);
+  assert.equal(savedData[userId].settings.profileImagePosition, undefined);
   signOut();
 });
