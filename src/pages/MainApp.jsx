@@ -38,6 +38,8 @@ export default function MainApp() {
               <Route path="/investments" element={<Investments />} />
               <Route path="/investments/add" element={<AddInvestmentEntry />} />
               <Route path="/investments/edit/:id" element={<AddInvestmentEntry />} />
+              <Route path="/downloads" element={<Navigate to="/account?tab=downloads" replace />} />
+              <Route path="/search" element={<Navigate to="/account?tab=search" replace />} />
               <Route path="/account" element={<Account />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

@@ -5,16 +5,15 @@ import {
   FaWallet,
   FaPiggyBank,
   FaUniversity,
-  FaUser,
 } from "react-icons/fa";
-import ProfileAvatar from "./ProfileAvatar.jsx";
+import UserAvatar from "./UserAvatar.jsx";
 
 const navItems = [
   { path: "/", label: "Home", icon: FaHome },
   { path: "/wallet", label: "Wallet", icon: FaWallet },
   { path: "/savings", label: "Savings", icon: FaPiggyBank },
   { path: "/investments", label: "Investments", icon: FaUniversity },
-  { path: "/account", label: "Account", icon: FaUser },
+  { path: "/account", label: "My Stuff", isAvatar: true },
 ];
 
 export default function SideNav() {
@@ -80,15 +79,15 @@ export default function SideNav() {
             }}
           />
         )}
-        {navItems.map(({ path, label, icon: Icon }) => (
+        {navItems.map(({ path, label, icon: Icon, isAvatar }) => (
           <Link
             key={path}
             className={`nav-item ${isActive(path) ? "active" : ""}`}
             to={path}
             aria-current={isActive(path) ? "page" : undefined}
           >
-            {path === "/account" ? (
-              <ProfileAvatar className="profile-avatar-sm" />
+            {isAvatar ? (
+              <UserAvatar size={20} className="side-nav-avatar" />
             ) : (
               <Icon className="nav-icon" />
             )}

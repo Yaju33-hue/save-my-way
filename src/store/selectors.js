@@ -62,6 +62,10 @@ const isRecurringEntryActive = (entry) => {
 export const isPendingRecurringEntry = (entry) => entry.recurring && !isRecurringEntryActive(entry);
 
 // Selectors for derived state
+const EMPTY_ARRAY = [];
+export const selectWalletEntries = (state) => state.data?.walletEntries || EMPTY_ARRAY;
+export const selectSavingsEntries = (state) => state.data?.savingsEntries || EMPTY_ARRAY;
+export const selectInvestmentsEntries = (state) => state.data?.investmentsEntries || EMPTY_ARRAY;
 // Computed values migrated from DataContext
 
 export const selectWalletTotal = (state) => {

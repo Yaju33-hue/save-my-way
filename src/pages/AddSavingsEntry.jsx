@@ -79,7 +79,7 @@ export default function AddSavingsEntry() {
 
   if (id && !editingEntry) {
     return (
-      <div className="container form-page">
+      <div className="form-page">
         <div className="card form-card">
           <h2 className="form-title">Entry unavailable</h2>
           <p>This entry may have been deleted or is not available in this account.</p>
@@ -92,7 +92,7 @@ export default function AddSavingsEntry() {
   }
 
   return (
-    <div className="container form-page">
+    <div className="form-page">
       <div className="card form-card">
         <button
           className="back-btn"

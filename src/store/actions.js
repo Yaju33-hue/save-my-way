@@ -1,7 +1,6 @@
 import { store } from "./index.js";
 import { fanout } from "sia-reactor/utils";
 import { fetchLiveExchangeRates } from "../utils/currency.js";
-import { migrateLegacyProfileImage } from "../utils/profileImage.js";
 
 const STORAGE_KEYS = {
   users: "save_my_way_registered_users",
@@ -40,9 +39,8 @@ const readJson = (key, fallback) => {
 const writeJson = (key, value) => {
   try {
     getStorage()?.setItem(key, JSON.stringify(value));
-    return true;
   } catch {
-    return false;
+    // Ignore storage quota errors.
   }
 };
 
@@ -107,11 +105,10 @@ const clearInvalidSession = () => {
 
 const createDefaultUserData = (userId) => ({
   id: userId,
+  avatarUrl: null,
   walletEntries: [],
   savingsEntries: [],
   investmentsEntries: [],
-  profileImage: "",
-  profileImageVersion: 1,
   settings: {
     theme: "light",
     hideBalance: false,
@@ -126,72 +123,29 @@ export const getUserDataById = (userId) => {
 
   const userDataStore = getUserDataStore();
   const existing = userDataStore[userId] || createDefaultUserData(userId);
-  const existingData = { ...existing };
-  delete existingData.profileImagePosition;
-  const existingSettings = { ...(existing.settings || {}) };
-  const legacySettingsImage = existingSettings.profileImage;
-  delete existingSettings.profileImage;
-  delete existingSettings.profileImagePosition;
 
   return {
     ...createDefaultUserData(userId),
-    ...existingData,
-    profileImage: existing.profileImage ?? legacySettingsImage ?? "",
-    profileImageVersion: existing.profileImageVersion ?? 0,
+    ...existing,
     settings: {
       ...createDefaultUserData(userId).settings,
-      ...existingSettings,
+      ...(existing.settings || {}),
     },
   };
 };
 
-const migrateLegacyProfileImageData = async (userId) => {
-  const userDataStore = getUserDataStore();
-  const existing = userDataStore[userId];
-  if (!existing) return "";
-
-  const settings = existing.settings || {};
-  const profileImage = existing.profileImage ?? settings.profileImage ?? "";
-  const legacyPosition = existing.profileImagePosition || settings.profileImagePosition;
-  const hasLegacyFields = Boolean(legacyPosition || settings.profileImage);
-  if (existing.profileImageVersion === 1 && !hasLegacyFields) return profileImage;
-
-  let croppedImage = profileImage;
-  if (profileImage) {
-    try {
-      croppedImage = await migrateLegacyProfileImage(profileImage, legacyPosition);
-    } catch {
-      return profileImage;
-    }
-  }
-
-  const cleanedData = { ...existing };
-  delete cleanedData.profileImagePosition;
-  const cleanedSettings = { ...settings };
-  delete cleanedSettings.profileImage;
-  delete cleanedSettings.profileImagePosition;
-  userDataStore[userId] = {
-    ...cleanedData,
-    profileImage: croppedImage,
-    profileImageVersion: 1,
-    settings: cleanedSettings,
-  };
-  saveUserDataStore(userDataStore);
-  return croppedImage;
-};
-
 const persistUserData = () => {
   const userId = store.auth?.user?.id;
-  if (!userId) return false;
+  if (!userId) return;
 
   const userDataStore = getUserDataStore();
+  const existing = userDataStore[userId] || getUserDataById(userId);
   userDataStore[userId] = {
-    ...getUserDataById(userId),
+    ...existing,
+    avatarUrl: store.auth?.user?.avatarUrl ?? existing.avatarUrl ?? null,
     walletEntries: Array.isArray(store.data.walletEntries) ? [...store.data.walletEntries] : [],
     savingsEntries: Array.isArray(store.data.savingsEntries) ? [...store.data.savingsEntries] : [],
     investmentsEntries: Array.isArray(store.data.investmentsEntries) ? [...store.data.investmentsEntries] : [],
-    profileImage: store.auth.user.profileImage || "",
-    profileImageVersion: 1,
     settings: {
       theme: store.ui.theme || "light",
       hideBalance: Boolean(store.ui.hideBalance),
@@ -200,10 +154,10 @@ const persistUserData = () => {
     updatedAt: new Date().toISOString(),
   };
 
-  return saveUserDataStore(userDataStore);
+  saveUserDataStore(userDataStore);
 };
 
-const loadUserData = (userId, profileImageOverride) => {
+const loadUserData = (userId) => {
   const userData = getUserDataById(userId);
 
   if (typeof document !== "undefined") {
@@ -216,10 +170,9 @@ const loadUserData = (userId, profileImageOverride) => {
   store.ui.theme = userData.settings.theme || "light";
   store.ui.hideBalance = Boolean(userData.settings.hideBalance);
   store.ui.currency = userData.settings.currency || "NGN";
-  store.auth.user = {
-    ...store.auth.user,
-    profileImage: profileImageOverride ?? userData.profileImage ?? "",
-  };
+  if (store.auth?.user && store.auth.user.id === userId) {
+    store.auth.user.avatarUrl = userData.avatarUrl || store.auth.user.avatarUrl || null;
+  }
 };
 
 const clearLoadedUserData = () => {
@@ -284,15 +237,13 @@ export const initializeAuth = async () => {
     return { ok: false, error: "User session is invalid." };
   }
 
-  const profileImage = await migrateLegacyProfileImageData(userRecord.id);
-
   const profile = {
     id: userRecord.id,
     name: userRecord.name || "User",
     phone: userRecord.phone || "",
     email: userRecord.email,
+    avatarUrl: userRecord.avatarUrl || getUserDataStore()[userRecord.id]?.avatarUrl || null,
     createdAt: userRecord.createdAt || new Date().toISOString(),
-    profileImage,
   };
 
   store.auth.user = profile;
@@ -301,7 +252,7 @@ export const initializeAuth = async () => {
   store.auth.authenticated = true;
   store.auth.loading = false;
   store.auth.status = "authenticated";
-  loadUserData(profile.id, profileImage);
+  loadUserData(profile.id);
   return { ok: true, user: profile, session };
 };
 
@@ -349,6 +300,7 @@ export const signUp = async (userData) => {
     phone,
     email,
     passwordHash,
+    createdAt: userData?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
 
@@ -356,6 +308,9 @@ export const signUp = async (userData) => {
   saveRegisteredUsers(latestUsers);
 
   const userDataStore = getUserDataStore();
+  userDataStore[newUser.id] = createDefaultUserData(newUser.id);
+  saveUserDataStore(userDataStore);
+
   const session = createSessionRecord(newUser.id);
   const profile = {
     id: newUser.id,
@@ -426,6 +381,7 @@ export const signIn = async (email, password) => {
     name: matchedUser.name || "User",
     phone: matchedUser.phone || "",
     email: matchedUser.email,
+    avatarUrl: matchedUser.avatarUrl || getUserDataStore()[matchedUser.id]?.avatarUrl || null,
     createdAt: matchedUser.createdAt || new Date().toISOString(),
   };
 
@@ -438,6 +394,41 @@ export const signIn = async (email, password) => {
   loadUserData(profile.id);
 
   return { ok: true, user: profile, session };
+};
+
+export const updateProfileImage = (avatarUrl) => {
+  const userId = store.auth?.user?.id;
+  if (!userId) return { ok: false, error: "No active user session." };
+
+  // Update in registeredUsers
+  const users = getRegisteredUsers();
+  const userIndex = users.findIndex((u) => u.id === userId);
+  if (userIndex !== -1) {
+    users[userIndex].avatarUrl = avatarUrl;
+    users[userIndex].updatedAt = new Date().toISOString();
+    saveRegisteredUsers(users);
+  }
+
+  // Update in userDataStore
+  const userDataStore = getUserDataStore();
+  if (!userDataStore[userId]) {
+    userDataStore[userId] = createDefaultUserData(userId);
+  }
+  userDataStore[userId].avatarUrl = avatarUrl;
+  userDataStore[userId].updatedAt = new Date().toISOString();
+  saveUserDataStore(userDataStore);
+
+  // Update reactive auth state
+  store.auth.user = {
+    ...store.auth.user,
+    avatarUrl,
+  };
+
+  return { ok: true, avatarUrl };
+};
+
+export const removeProfileImage = () => {
+  return updateProfileImage(null);
 };
 
 export const signOut = () => {
@@ -474,26 +465,6 @@ export const toggleTheme = () => {
 export const toggleHideBalance = () => {
   store.ui.hideBalance = !store.ui.hideBalance;
   persistUserData();
-};
-
-export const updateProfileImage = (profileImage) => {
-  if (
-    typeof profileImage !== "string" ||
-    (profileImage && !/^data:image\/jpeg;base64,/.test(profileImage))
-  ) {
-    return false;
-  }
-
-  if (!store.auth.user) return false;
-  const previousUser = store.auth.user;
-  store.auth.user = {
-    ...previousUser,
-    profileImage,
-  };
-  if (persistUserData()) return true;
-
-  store.auth.user = previousUser;
-  return false;
 };
 
 export const updateCurrency = (newCurrency) => {
